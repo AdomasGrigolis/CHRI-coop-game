@@ -4,9 +4,10 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import pygame
-import pymunk
+import pymunk, pymunk.pygame_util
 
 from src.physics import Physics
+from utils.pymunk_simple_objects import *
 from utils.convert_pos import convert_pos
 
 '''SIMULATION'''
@@ -45,6 +46,16 @@ state = [] # state vector
 # scaling
 window_scale = 800 # conversion from meters to pixels
 
+# Pymunk
+space = pymunk.Space()
+space.gravity = (0, 981)
+
+box = create_box(space, (400, 550))
+ball = create_ball(space, (400, 400))
+floor = create_static_wall(space, (400, 580))
+
+draw_options = pymunk.pygame_util.DrawOptions(window)
+
 # Haptic device
 physics = Physics(hardware_version=2)
 device_connected = physics.is_device_connected()
@@ -67,6 +78,9 @@ while run:
         elif event.type == pygame.KEYUP:
             if event.key == ord('q'): # force quit with q button
                 run = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:  # Apply force when spacebar is pressed
+                box.body.apply_force_at_local_point((5000, 0), (0, 0))
     # Haptic device
     if device_connected:
         pA0,pB0,pA,pB,pE = physics.get_device_pos() #positions of the various points of the pantograph
@@ -100,6 +114,8 @@ while run:
     text = font.render("FPS = " + str( round( clock.get_fps() ) ), True, (0, 0, 0), (255, 255, 255))
     window.blit(text, textRect)
     
+    space.step(1/FPS)
+    space.debug_draw(draw_options)
     pygame.display.flip() # update display
         
     
