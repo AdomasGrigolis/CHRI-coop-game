@@ -1,0 +1,6 @@
+numpy
+matplotlib
+pygame
+pymunk
+pyserial
+scipy
