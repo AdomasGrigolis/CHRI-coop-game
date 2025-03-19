@@ -3,5 +3,16 @@
         "width": 800,
         "height": 600
     },
-    "hardware_scale": 800
+    "hardware_scale": 800,
+    "server":{
+        "ip": "127.0.0.1",
+        "port": 40001,
+        "buffer_size": 1024,
+        "debug": true,
+        "keybinds": {
+            "quit_serv": "q",
+            "start_sim": "s"
+        }
+    },
+    "debug": true
 }
