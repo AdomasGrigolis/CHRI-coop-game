@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import numpy as np
-import math
+import math, json, os
 import matplotlib.pyplot as plt
 import pygame
 import pymunk, pymunk.pygame_util
@@ -10,15 +10,22 @@ from src.physics import Physics
 from utils.pymunk_simple_objects import *
 from utils.convert_pos import convert_pos
 
+# Settings
+config_set_path = os.path.join(os.path.dirname(__file__), "../config/settings.json")
+config_sim_path = os.path.join(os.path.dirname(__file__), "../config/simulation.json")
+with open(config_set_path, "r") as file:
+    settings = json.load(file)
+with open(config_sim_path, "r") as file:
+    cfg_simulation = json.load(file)
+
 '''SIMULATION'''
 
 # SIMULATION PARAMETERS
-dt = 0.01 # intergration step timedt = 0.01 # integration step time
-dts = dt*1 # desired simulation step time (NOTE: it may not be achieved)
+dt = cfg_simulation['timeStep'] # simulation step time
 
 # initialise real-time plot with pygame
 pygame.init() # start pygame
-window = pygame.display.set_mode((800, 600)) # create a window (size in pixels)
+window = pygame.display.set_mode((settings['screen_size']['width'], settings['screen_size']['height'])) # create a window (size in pixels)
 window.fill((255,255,255)) # white background
 xc, yc = window.get_rect().center # window center
 pygame.display.set_caption('test')
@@ -29,7 +36,7 @@ textRect = text.get_rect()
 textRect.topleft = (10, 10) # printing text position with respect to the top-left corner of the window
 
 clock = pygame.time.Clock() # initialise clock
-FPS = int(1/dts) # refresh rate
+FPS = int(1/dt) # refresh rate
 
 # initial conditions
 t = 0.0 # time
@@ -43,12 +50,9 @@ p_prev = np.zeros(2) # previous endpoint position
 i = 0 # loop counter
 state = [] # state vector
 
-# scaling
-window_scale = 800 # conversion from meters to pixels
-
 # Pymunk
 space = pymunk.Space()
-space.gravity = (0, 981)
+space.gravity = (0, int(100*cfg_simulation['gravity']))
 
 box = create_box(space, (400, 550))
 ball = create_ball(space, (400, 400))
@@ -84,7 +88,7 @@ while run:
     # Haptic device
     if device_connected:
         pA0,pB0,pA,pB,pE = physics.get_device_pos() #positions of the various points of the pantograph
-        pm = convert_pos(pygame.display.get_surface().get_size(), window_scale, pE) #convert the physical positions to screen coordinates
+        pm = convert_pos(pygame.display.get_surface().get_size(), settings['hardware_scale'], pE) #convert the physical positions to screen coordinates
     else:
         pm = np.array(pygame.mouse.get_pos())
 
