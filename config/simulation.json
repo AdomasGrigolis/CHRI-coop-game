@@ -1,4 +1,12 @@
 {
     "gravity": 0.0,
-    "timeStep": 0.01
+    "timeStep": 0.01,
+    "object":{
+        "mass": 1.0,
+        "init_position": [0.5, 0.5],
+        "init_impulse":{
+            "x": 0, 
+            "y": 80
+        }
+    }
 }

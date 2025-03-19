@@ -1,0 +1,8 @@
+{
+    
+    "keybinds":{
+        "start_game": "e",
+        "quit_game": "q"
+    },
+    "FPS": 60
+}
