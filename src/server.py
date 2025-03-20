@@ -163,12 +163,32 @@ while run:
         elif addr == players[2]:  # Player 2
             pm2 = pm
     # Print current position
-    print(pm1, pm2)
+    #print(pm1, pm2)
 
     # save state
     current_state = [t, pm1, pm2, p1, p2, dp1, dp2, pr1, pr2, f1, f2, p_prev1, p_prev2]
     # log states for analysis
     #state.append(current_state)
+    p1 = pm1
+    p2 = pm2
+
+    # Send state to clients
+    # Serialize
+    serialized_state = struct.pack(
+        '=fi2i2i',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
+        t,
+        i,
+        int(p1[0]), int(p1[1]),
+        int(p2[0]), int(p2[1])
+    )
+
+    # Send the serialized state to all players
+    for player in players.values():
+        try:
+            sock.sendto(serialized_state, player)
+        except socket.error as e:
+            if DEBUG:
+                print(f"Error sending game state to {player}: {e}")
     
     # integration
     #ddp = F/m

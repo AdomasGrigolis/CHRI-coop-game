@@ -46,10 +46,6 @@ while running:
 
     time.sleep(0.5)
 
-# SIMULATION PARAMETERS
-dt = cfg_simulation['timeStep'] # simulation step time
-pm = np.zeros(2)
-
 # Pygame setup
 pygame.init() # start pygame
 window = pygame.display.set_mode(tuple(screen_size)) # create a window (size in pixels)
@@ -58,6 +54,14 @@ xc, yc = window.get_rect().center # window center
 pygame.display.set_caption(f'Client {player_number}')
 clock = pygame.time.Clock() # initialise clock
 FPS =  cfg_usr["FPS"] # refresh rate
+
+# SIMULATION PARAMETERS
+dt = cfg_simulation['timeStep'] # simulation step time
+
+# Simulation variables
+pm = np.zeros(2)
+self_pos = np.array([xc, yc])
+opponent_pos = np.array([xc, yc])
 
 def networking_thread(sock, buffer_size, network_queue):
     while True:
@@ -78,10 +82,20 @@ while run:
     # Receive data from server
     while not network_queue.empty():
         data, addr = network_queue.get()
-        message = data.decode()
-        if message == "shutdown":
-            if DEBUG: print("Server shutdown")
-            run = False
+        try:
+            message = data.decode()
+            if message == "shutdown":
+                if DEBUG: print("Server shutdown")
+                run = False
+        except UnicodeDecodeError:
+            try:
+                t, i_server, p1_x, p1_y, p2_x, p2_y = struct.unpack('=fi2i2i', data)
+                self_pos = np.array([p1_x, p1_y])
+                opponent_pos = np.array([p2_x, p2_y])
+                if DEBUG: print(f"Received game state: {t}, {i_server}, {p1_x}, {p1_y}, {p2_x}, {p2_y}")
+            except struct.error as e:
+                if DEBUG: print(f"Failed to unpack binary data: {e}")
+
     
     # Event handling
     for event in pygame.event.get(): # interrupt function
@@ -99,8 +113,12 @@ while run:
     packed_data = bytearray(struct.pack("=2i", pm[0], pm[1]))
     sock.sendto(packed_data, (server_ip, port))
 
-    # Update screen and pygame
+    # Rendering
     window.fill((255,255,255)) # clear window
+    pygame.draw.circle(window, (0, 255, 0), self_pos, 5) 
+    pygame.draw.circle(window, (0, 0, 255), opponent_pos, 5) 
+
+    # Update pygame
     pygame.display.flip() # update display
     clock.tick(FPS)
 
