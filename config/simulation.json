@@ -2,7 +2,7 @@
     "gravity": 0.0,
     "timeStep": 0.01,
     "object":{
-        "mass": 1.0,
+        "mass": 1000.0,
         "init_position": [0.5, 0.5],
         "init_impulse":{
             "x": 0, 

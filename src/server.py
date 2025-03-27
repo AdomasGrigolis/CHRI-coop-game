@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 import pygame
 import pymunk, pymunk.pygame_util
 from utils.thread_utils import server_networking_thread, server_latency_thread
-
+from utils.post_collision import post_collision, latest_impulse, player_collisions, ensure_no_overlap
+import random
 from utils.pymunk_simple_objects import *
 
 # Settings
@@ -80,6 +81,7 @@ pygame.init() # start pygame
 window = pygame.display.set_mode(tuple(screen_size)) # create a window (size in pixels)
 window.fill((255,255,255)) # white background
 xc, yc = window.get_rect().center # window center
+window_width, window_height = window.get_size()
 pygame.display.set_caption('Server')
 
 font = pygame.font.Font('freesansbold.ttf', 12) # printing text font and font size
@@ -107,15 +109,45 @@ p_prev2 = np.zeros(2) # previous endpoint position player 2
 i = 0 # loop counter
 current_state = []
 state = [] # state vector
-
+score = 0
 # Pymunk
 space = pymunk.Space()
 space.gravity = (0, int(100 * cfg_simulation['gravity']))
 
 init_object_pos = list(np.array(screen_size) * np.array(cfg_simulation['object']['init_position']))
 object_mass = cfg_simulation['object']['mass']
-ball = create_ball(space, init_object_pos, mass=object_mass)
+
+ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
 floor = create_static_wall(space, (400, 580))
+
+# Create mouse circles
+circle1_shape = create_ball(space, tuple(p1), radius=10, mass=10,)
+circle1_shape.color = (255, 0, 0, 255)
+circle1_shape.filter = pymunk.ShapeFilter(group=1)  # Add this line
+
+circle2_shape = create_ball(space, tuple(p2), radius=10, mass=10)
+circle2_shape.color = (255, 255, 0, 0)
+circle2_shape.filter = pymunk.ShapeFilter(group=2)  # Add this line
+
+##ball.filter = pymunk.ShapeFilter(group=3)  # Assuming ball is the asteroid
+
+circle1_type = 1
+circle2_type = 2
+ball_type = 3
+
+# Assign these types to your shapes
+circle1_shape.collision_type = circle1_type
+circle2_shape.collision_type = circle2_type
+##ball.collision_type = ball_type
+
+# Create a collision handler
+handler1 = space.add_collision_handler(circle1_type, ball_type)
+handler1.post_solve = post_collision
+handler2 = space.add_collision_handler(circle2_type, ball_type)
+handler2.post_solve = post_collision
+
+#Initial blackhole
+blackhole_positioned = False
 
 # Initial impulse
 initial_impulse = pymunk.Vec2d(cfg_simulation['object']['init_impulse']["x"], cfg_simulation['object']['init_impulse']["y"])
@@ -147,7 +179,8 @@ while run:
     # Process data from players
     while not network_queue.empty():
         data, addr = network_queue.get()
-        pm = np.array(struct.unpack('=2i', data))
+        pm = np.zeros(2)
+        pm[0],pm[1], blackhole_positioned = np.array(struct.unpack('=2ib', data))
 
         # Update the correct player's mouse position
         if addr == players[1]:  # Player 1
@@ -163,15 +196,42 @@ while run:
     #state.append(current_state)
     p1 = pm1
     p2 = pm2
+    # Create random goal position
+    if not blackhole_positioned:
+        blackhole_x = random.randint(0, window_width - 220) #220 is blackhole height and width
+        blackhole_y = random.randint(0, window_height - 220)
+        score += 1
+        space.remove(ball.body, ball)
+        ball = create_ball(space, init_object_pos, mass=random.randint(100, 1000), radius=random.randint(30, 100))
+        blackhole_positioned = True
 
+    # Update circle for mouse position
+    circle1_shape.body.position = tuple(p1)
+    circle2_shape.body.position = tuple(p2)
+    if latest_impulse[0] != 0 or latest_impulse[1] != 0:
+        print(f"Latest collision impulse: {latest_impulse}")
+
+    # Update circle for mouse position
+    overlap1 = ensure_no_overlap(circle1_shape, ball)
+    overlap2 = ensure_no_overlap(circle2_shape, ball)
+    if overlap1:
+        p1 = np.array(circle1_shape.body.position)
+    if overlap2:
+        p2 = np.array(circle2_shape.body.position)
+    
     # Send state to clients
     # Serialize
     serialized_state = struct.pack(
-        '=fi2i2i',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
+        '=fi2i2i2ii2ibi',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
         t,
         i,
         int(p1[0]), int(p1[1]),
-        int(p2[0]), int(p2[1])
+        int(p2[0]), int(p2[1]),
+        int(ball.body.position[0]), int(ball.body.position[1]),
+        int(ball.radius),
+        int(blackhole_x), int(blackhole_y),
+        int(blackhole_positioned),
+        score,
     )
 
     # Send the serialized state to all players

@@ -16,7 +16,7 @@
 	- [x] Arbitration mechanism or lobby to choose which player is which (for example, who is left or right, who is color X or Y etc.)
 	- [x] Force mechanism works with both (note that the simulation simply has been offloaded to the server)
 - [ ] Visuals
-	- [ ] Can render all physics objects using pygame and not pymunk debug
+	- [x] Can render all physics objects using pygame and not pymunk debug
 	- [ ] Force indication
 	- [ ] UI
 		- [ ] In-game menu

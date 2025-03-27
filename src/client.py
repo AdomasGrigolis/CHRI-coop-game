@@ -7,11 +7,26 @@ from queue import Queue
 import pygame
 from utils.convert_pos import convert_pos
 from utils.thread_utils import client_networking_rec_thread, client_latency_thread
-
+import random
 # Settings
 config_set_path = os.path.join(os.path.dirname(__file__), "../config/settings.json")
 config_usr_path = os.path.join(os.path.dirname(__file__), "../config/usr_settings.json")
 config_sim_path = os.path.join(os.path.dirname(__file__), "../config/simulation.json")
+image_path = os.path.join("assets", "beautiful-view-stars-night-sky.jpg")
+image_asteroid = os.path.join("assets", "asteroidd.png")
+font_path = os.path.join("assets", "Game Bubble.otf")
+image_blackhole = os.path.join("assets", "blackhole.png")
+image_warning = os.path.join("assets", "warning.png")
+image_correct = os.path.join("assets", "correct.png")
+image_wrong =os.path.join("assets", "wrong.png")
+
+background = pygame.image.load(image_path)
+asteroid = pygame.image.load(image_asteroid)
+blackhole = pygame.image.load(image_blackhole)
+warning = pygame.image.load(image_warning)
+correct = pygame.image.load(image_correct)
+wrong = pygame.image.load(image_wrong)
+
 with open(config_set_path, "r") as file:
     settings = json.load(file)
 with open(config_sim_path, "r") as file:
@@ -82,6 +97,17 @@ latency_thread_instance = threading.Thread(target=client_latency_thread, args=(l
 network_thread.start()
 latency_thread_instance.start()
 
+TEXT_FONT = pygame.font.Font(font_path, 32)
+title = TEXT_FONT.render(f'SPACE STATION SAVER!', True, (0, 255, 0))
+
+#Initialize variables
+force = 0 
+timer = 3
+blackhole_positioned = True 
+succes = False
+high_force_start_time = 0
+force_threshold_time = 5  # 5 seconds
+fail = False
 
 # MAIN LOOP
 i = 0
@@ -99,9 +125,12 @@ while run:
                 run = False
         except UnicodeDecodeError:
             try:
-                t_server, i_server, p1_x, p1_y, p2_x, p2_y = struct.unpack('=fi2i2i', data)
+                t_server, i_server, p1_x, p1_y, p2_x, p2_y,pobj_x, pobj_y,\
+                rad_obj, \
+                blackhole_x, blackhole_y, blackhole_positioned, \
+                score = struct.unpack('=fi2i2i2ii2ibi', data)
                 player_1_pos, player_2_pos = np.array([p1_x, p1_y]), np.array([p2_x, p2_y])
-                if DEBUG: print(f"Received game state: {t}, {i_server}, {p1_x}, {p1_y}, {p2_x}, {p2_y}")
+                #if DEBUG: print(f"Received game state: {t}, {i_server}, {p1_x}, {p1_y}, {p2_x}, {p2_y}")
             except struct.error as e:
                 if DEBUG: print(f"Failed to unpack binary data: {e}")
 
@@ -111,6 +140,11 @@ while run:
         if event.type == pygame.QUIT: # force quit with closing the window
             run = False
         elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_p:
+                blackhole_positioned = False
+            else:
+                blackhole_positioned = True
+            force += 10 if event.key == pygame.K_u else -10 if event.key == pygame.K_y else 0
             if event.key == ord(cfg_usr["keybinds"]["quit_game"]): # force quit with q button
                 run = False
     
@@ -119,14 +153,98 @@ while run:
     #if DEBUG: print(f"Mouse position: {pm}")
 
     # Send data to server
-    packed_data = bytearray(struct.pack("=2i", pm[0], pm[1]))
-    sock.sendto(packed_data, (server_ip, port))
+    if succes:
+        blackhole_positioned = False
+        succes = False
+        #window.blit(correct, (0, 0))
+    
+    if fail:
+        blackhole_positioned = False
+        fail = False
+        #window.blit(wrong, (0, 0))
 
+    
+    packed_data = bytearray(struct.pack("=2ib", pm[0], pm[1], int(blackhole_positioned)))
+    print(blackhole_positioned)
+    sock.sendto(packed_data, (server_ip, port))
+    #print('x_object:', pobj_x)
     # Rendering
-    window.fill((255,255,255)) # clear window
-    pygame.draw.circle(window, (0, 255, 0), pm, 5)
-    pygame.draw.circle(window, (255, 0, 0), player_1_pos, 5)
-    pygame.draw.circle(window, (0, 0, 255), player_2_pos, 5)
+    # Load the background image (adjust the file path to your actual image path)
+    window.fill((255, 255, 255))  # Clear window
+
+    window_width, window_height = window.get_size()
+    background = pygame.transform.scale(background, (window_width, window_height))
+    correct = pygame.transform.scale(correct, (window_width, window_height))
+    wrong = pygame.transform.scale(wrong, (window_width, window_height))
+    
+    scale_factor = 2.2
+    asteroid = pygame.transform.scale(asteroid, (rad_obj*scale_factor, rad_obj*scale_factor))
+     # Blit the background image first (ensure it's drawn before other elements)
+    window.blit(background, (0, 0))  # Position (0, 0) means the top-left corner of the window
+    window.blit(title, (window_width/2, 0))
+    asteroid_position_x = pobj_x - 1/2 *rad_obj*scale_factor
+    asteroid_position_y = pobj_y - 1/2 *rad_obj*scale_factor
+    window.blit(asteroid, (asteroid_position_x , asteroid_position_y))
+
+    pygame.draw.circle(window, (0, 255, 0), pm, 10)
+    pygame.draw.circle(window, (255, 0, 0), player_1_pos, 15)
+    pygame.draw.circle(window, (0, 0, 255), player_2_pos, 15)
+    
+    # Add force meter
+    force_meter_bg = pygame.Rect(10, 25, 200, 20)  # Background rectangle
+    force_meter_fill = pygame.Rect(10, 25, force * 2, 20)  # Foreground rectangle that changes with force
+    pygame.draw.rect(window, (200, 200, 200), force_meter_bg)  # Draw background (light gray)
+    if 0<np.abs(force) <25: 
+        pygame.draw.rect(window, (0, 255, 0), force_meter_fill)  # Draw fill (green)
+    elif 25<np.abs(force) <50:
+        pygame.draw.rect(window, (255, 255, 0), force_meter_fill)  # Draw fill (YELLOW)
+
+    elif 50 <= np.abs(force):
+        warning = pygame.transform.scale(warning, (50, 50))
+        window.blit(warning, (pm[0], pm[1]))
+        pygame.draw.rect(window, (255, 0, 0), force_meter_fill)
+        if high_force_start_time == 0:
+            high_force_start_time = pygame.time.get_ticks()
+
+        current_time = pygame.time.get_ticks()
+        if (current_time - high_force_start_time) / 1000 >= force_threshold_time:
+            print('TIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUP')
+            fail = True
+        
+        
+    print('FORCE IS NOW:', force)
+    #pygame.draw.circle(window, (0, 255, 255), (pobj_x, pobj_y), rad_obj) #Object 
+
+    #add blackhole
+    blackhole = pygame.transform.scale(blackhole, (rad_obj*scale_factor, rad_obj*scale_factor))
+
+    # Generate random x and y coordinates within the window
+    window.blit(blackhole, (blackhole_x, blackhole_y))
+    
+    print('score:', score)
+    # timer for goal position
+    position_blackhole = blackhole.get_rect(topleft=(blackhole_x, blackhole_y)).center #change to position where it is being blit
+    position_asteroid = asteroid.get_rect(topleft=(asteroid_position_x, asteroid_position_y)).center
+
+    error_margin = 50
+
+    if (abs(position_asteroid[0] - position_blackhole[0]) <= error_margin and 
+        abs(position_asteroid[1] - position_blackhole[1]) <= error_margin):
+        if i % 30 == 0 and timer > 0:
+            timer -= 1
+        countdown = TEXT_FONT.render(f'{timer}', True, (255, 255, 0))
+        if timer == 0:
+            countdown = TEXT_FONT.render(f'SUCCES!', True, (255, 255, 0))
+            blackhole_positioned = False
+            succes = True
+        window.blit(countdown, (position_asteroid[0], position_asteroid[1]))
+    else:
+        timer = 3
+
+    # add score
+    score = score - 1
+    score_text = TEXT_FONT.render(f'SCORE: {score/2}/10', True, (0, 255, 255))
+    window.blit(score_text, (10, 45) )
 
     # Latency
     if not latency_queue.empty():
