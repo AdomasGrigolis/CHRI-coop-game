@@ -121,7 +121,7 @@ ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 
 floor = create_static_wall(space, (400, 580))
 
 # Create mouse circles
-circle1_shape = create_ball(space, tuple(p1), radius=10, mass=10,)
+circle1_shape = create_ball(space, tuple(p1), radius=10, mass=10)
 circle1_shape.color = (255, 0, 0, 255)
 circle1_shape.filter = pymunk.ShapeFilter(group=1)  # Add this line
 
@@ -161,8 +161,13 @@ latency_thread_instance = threading.Thread(target=server_latency_thread, args=(l
 network_thread.start()
 latency_thread_instance.start()
 
+fail = False
+success = False
+
 # MAIN LOOP
 i = 0
+start_time = time.time()
+last_timer_update = time.time()
 run = True
 while run:
     for event in pygame.event.get(): # interrupt function
@@ -231,7 +236,7 @@ while run:
         int(ball.radius),
         int(blackhole_x), int(blackhole_y),
         int(blackhole_positioned),
-        score,
+        score, success, fail
     )
 
     # Send the serialized state to all players
@@ -242,11 +247,31 @@ while run:
             if DEBUG:
                 print(f"Error sending game state to {player}: {e}")
     
-    # integration
-    #ddp = F/m
-    #dp += ddp*dt
-    #p += dp*dt
-    #t += dt
+
+    # timer for goal position
+    position_blackhole = [blackhole_x, blackhole_y] #change to position where it is being blit
+    position_asteroid = ball.body.position
+
+    error_margin = 50
+
+    if (abs(position_asteroid[0] - position_blackhole[0]) <= error_margin and 
+        abs(position_asteroid[1] - position_blackhole[1]) <= error_margin):
+        
+        # Check if 1 second has passed since the last timer update
+        current_time = time.time()
+        if current_time - last_timer_update >= 1 and timer > 0:
+            timer -= 1
+            last_timer_update = current_time  # Update the last timer update time
+        
+        #countdown = TEXT_FONT.render(f'{timer}', True, (255, 255, 0))
+        if timer == 0:
+            #countdown = TEXT_FONT.render(f'SUCCES!', True, (255, 255, 0))
+            blackhole_positioned = False
+            success = True
+        #window.blit(countdown, (position_asteroid[0], position_asteroid[1]))
+    else:
+        timer = 3
+        last_timer_update = time.time()
 
     # increase loop counter
     i = i + 1

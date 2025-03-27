@@ -15,5 +15,5 @@
             "start_sim": "s"
         }
     },
-    "debug": true
+    "debug": false
 }

@@ -104,7 +104,7 @@ title = TEXT_FONT.render(f'SPACE STATION SAVER!', True, (0, 255, 0))
 force = 0 
 timer = 3
 blackhole_positioned = True 
-succes = False
+success = False
 high_force_start_time = 0
 force_threshold_time = 5  # 5 seconds
 fail = False
@@ -113,6 +113,8 @@ score = 0
 i = 0
 t_server = 0.0
 run = True
+start_time = time.time()
+last_timer_update = time.time()
 while run:
     t = i * dt
     # Receive data from server
@@ -128,7 +130,7 @@ while run:
                 t_server, i_server, p1_x, p1_y, p2_x, p2_y,pobj_x, pobj_y,\
                 rad_obj, \
                 blackhole_x, blackhole_y, blackhole_positioned, \
-                score1 = struct.unpack('=fi2i2i2ii2ibi', data)
+                score1, success, fail = struct.unpack('=fi2i2i2ii2ibi', data)
                 player_1_pos, player_2_pos = np.array([p1_x, p1_y]), np.array([p2_x, p2_y])
                 #if DEBUG: print(f"Received game state: {t}, {i_server}, {p1_x}, {p1_y}, {p2_x}, {p2_y}")
             except struct.error as e:
@@ -153,9 +155,12 @@ while run:
     #if DEBUG: print(f"Mouse position: {pm}")
 
     # Send data to server
-    if succes:
+    if success:
+        end_time = time.time()
+        time_elapsed = end_time - start_time
+        print('Time elapsed:', time_elapsed)
         blackhole_positioned = False
-        succes = False
+        success = False
         force = 0
         high_force_start_time = 0
         force_threshold_time = 5
@@ -169,6 +174,7 @@ while run:
         correct = pygame.image.load(image_correct)
         wrong = pygame.image.load(image_wrong)
         score += 1
+        start_time = time.time()
     
     if fail:
         blackhole_positioned = False
@@ -189,7 +195,7 @@ while run:
 
     
     packed_data = bytearray(struct.pack("=2ib", pm[0], pm[1], int(blackhole_positioned)))
-    print(blackhole_positioned)
+    if DEBUG: print(blackhole_positioned)
     sock.sendto(packed_data, (server_ip, port))
     #print('x_object:', pobj_x)
     # Rendering
@@ -235,7 +241,7 @@ while run:
             fail = True
         
         
-    print('FORCE IS NOW:', force)
+    if DEBUG: print('FORCE IS NOW:', force)
     #pygame.draw.circle(window, (0, 255, 255), (pobj_x, pobj_y), rad_obj) #Object 
 
     #add blackhole
@@ -244,25 +250,8 @@ while run:
     # Generate random x and y coordinates within the window
     window.blit(blackhole, (blackhole_x, blackhole_y))
     
-    print('score:', score)
-    # timer for goal position
-    position_blackhole = blackhole.get_rect(topleft=(blackhole_x, blackhole_y)).center #change to position where it is being blit
-    position_asteroid = asteroid.get_rect(topleft=(asteroid_position_x, asteroid_position_y)).center
+    if DEBUG: print('score:', score)
 
-    error_margin = 50
-
-    if (abs(position_asteroid[0] - position_blackhole[0]) <= error_margin and 
-        abs(position_asteroid[1] - position_blackhole[1]) <= error_margin):
-        if i % 30 == 0 and timer > 0:
-            timer -= 1
-        countdown = TEXT_FONT.render(f'{timer}', True, (255, 255, 0))
-        if timer == 0:
-            countdown = TEXT_FONT.render(f'SUCCES!', True, (255, 255, 0))
-            blackhole_positioned = False
-            succes = True
-        window.blit(countdown, (position_asteroid[0], position_asteroid[1]))
-    else:
-        timer = 3
 
     # add score
 
