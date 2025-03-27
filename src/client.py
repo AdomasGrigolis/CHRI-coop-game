@@ -113,7 +113,6 @@ title = TEXT_FONT.render(f'SPACE STATION SAVER!', True, (0, 255, 0))
 
 #Initialize variables
 force_vector = np.array([0, 0])
-blackhole_positioned = True 
 success = False
 fail = False
 score = 0
@@ -137,9 +136,9 @@ while run:
             try:
                 t_server, i_server, p1_x, p1_y, p2_x, p2_y,pobj_x, pobj_y,\
                 rad_obj, \
-                blackhole_x, blackhole_y, blackhole_positioned, \
-                score1, success, fail, timer, \
-                force_vector1_x, force_vector1_y, force_vector2_x, force_vector2_y = struct.unpack('=fi2i2i2ii2ibiiii2f2f', data)
+                blackhole_x, blackhole_y, \
+                score, success, fail, timer, \
+                force_vector1_x, force_vector1_y, force_vector2_x, force_vector2_y = struct.unpack('=fi2i2i2ii2iiiii2f2f', data)
                 player_1_pos, player_2_pos = np.array([p1_x, p1_y]), np.array([p2_x, p2_y])
                 if player_number == 1: force_vector = np.array([force_vector1_x, force_vector1_y])
                 else: force_vector = np.array([force_vector2_x, force_vector2_y])
@@ -153,10 +152,6 @@ while run:
         if event.type == pygame.QUIT: # force quit with closing the window
             run = False
         elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_p:
-                blackhole_positioned = False
-            else:
-                blackhole_positioned = True
             if event.key == ord(cfg_usr["keybinds"]["quit_game"]): # force quit with q button
                 run = False
     
@@ -176,23 +171,18 @@ while run:
 
     # Send data to server
     if success:
-        blackhole_positioned = False
-        success = False
         window.blit(correct, (0, 0))
         pygame.display.flip()
-        #pygame.time.delay(1000)
+        pygame.time.delay(1000)
         background = pygame.image.load(image_path)
         asteroid = pygame.image.load(image_asteroid)
         blackhole = pygame.image.load(image_blackhole)
         warning = pygame.image.load(image_warning)
         correct = pygame.image.load(image_correct)
         wrong = pygame.image.load(image_wrong)
-        score += 1
         start_time = time.time()
     
     if fail:
-        blackhole_positioned = False
-        fail = False
         window.blit(wrong, (0, 0))
         pygame.display.flip()
         pygame.time.delay(1000)
@@ -202,11 +192,9 @@ while run:
         warning = pygame.image.load(image_warning)
         correct = pygame.image.load(image_correct)
         wrong = pygame.image.load(image_wrong)
-        score += 0
 
     
-    packed_data = bytearray(struct.pack("=2ib", pm[0], pm[1], int(blackhole_positioned)))
-    if DEBUG: print(blackhole_positioned)
+    packed_data = bytearray(struct.pack("=2i", pm[0], pm[1]))
     sock.sendto(packed_data, (server_ip, port))
     #print('x_object:', pobj_x)
     # Rendering

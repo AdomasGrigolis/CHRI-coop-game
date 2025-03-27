@@ -164,9 +164,6 @@ handler1.post_solve = post_collision
 handler2 = space.add_collision_handler(circle2_type, ball_type)
 handler2.post_solve = post_collision
 
-#Initial blackhole
-blackhole_positioned = False
-
 # Initial impulse
 initial_impulse = pymunk.Vec2d(cfg_simulation['object']['init_impulse']["x"], cfg_simulation['object']['init_impulse']["y"])
 
@@ -180,16 +177,24 @@ network_thread.start()
 latency_thread_instance.start()
 
 #initialize variables
+error_margin = cfg_simulation["error_margin"]
 fail = False
 success = False
+reset_required = False
+force_reset = False
 high_force_start_time = 0
 force_threshold_time = 5  # 5 seconds
 timer = 3 
 # MAIN LOOP
+trials = 0
 i = 0
 start_time = time.time()
 last_timer_update = time.time()
 run = True
+success_time = 0
+blackhole_x = random.randint(0, window_width - 220) #220 is blackhole height and width
+blackhole_y = random.randint(0, window_height - 220)
+trial_version = settings["server"]["trial_version"]
 while run:
     for event in pygame.event.get(): # interrupt function
         if event.type == pygame.QUIT: # force quit with closing the window
@@ -200,6 +205,8 @@ while run:
             elif event.key == ord(settings["server"]["keybinds"]["start_sim"]):  # Apply force when spacebar is pressed
                 #ball.body.apply_force_at_local_point(initial_impulse, (0, 0))
                 ball.body.velocity = initial_impulse
+            elif event.key == pygame.K_p:
+                force_reset = True
             force += 10 if event.key == pygame.K_c else -10 if event.key == pygame.K_y else 0
             success = True if event.key == pygame.K_x else False
             fail = True if event.key == pygame.K_z else False
@@ -209,7 +216,7 @@ while run:
     while not network_queue.empty():
         data, addr = network_queue.get()
         pm = np.zeros(2)
-        pm[0],pm[1], blackhole_positioned = np.array(struct.unpack('=2ib', data))
+        pm[0],pm[1] = np.array(struct.unpack('=2i', data))
 
         # Update the correct player's mouse position
         if addr == players[1]:  # Player 1
@@ -226,13 +233,27 @@ while run:
     p1 = pm1
     p2 = pm2
     # Create random goal position
-    if not blackhole_positioned:
+    if reset_required and time.time() - success_time >= 1 and not trial_version:
+        trials += 1
+        start_time = time.time()
+        success = False
+        fail = False
         blackhole_x = random.randint(0, window_width - 220) #220 is blackhole height and width
         blackhole_y = random.randint(0, window_height - 220)
-        score += 1
         space.remove(ball.body, ball)
         ball = create_ball(space, init_object_pos, mass=random.randint(100, 1000), radius=random.randint(30, 100))
-        blackhole_positioned = True
+        reset_required = False
+    if force_reset:
+        trials += 1
+        start_time = time.time()
+        success = False
+        fail = False
+        blackhole_x = random.randint(0, window_width - 220) #220 is blackhole height and width
+        blackhole_y = random.randint(0, window_height - 220)
+        space.remove(ball.body, ball)
+        ball = create_ball(space, init_object_pos, mass=random.randint(100, 1000), radius=random.randint(30, 100))
+        reset_required = False
+        force_reset = False
 
 
     # Update circle for mouse position
@@ -253,7 +274,7 @@ while run:
     # Send state to clients
     # Serialize
     serialized_state = struct.pack(
-        '=fi2i2i2ii2ibiiii2f2f',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
+        '=fi2i2i2ii2iiiii2f2f',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
         t,
         i,
         int(p1[0]), int(p1[1]),
@@ -261,7 +282,6 @@ while run:
         int(ball.body.position[0]), int(ball.body.position[1]),
         int(ball.radius),
         int(blackhole_x), int(blackhole_y),
-        int(blackhole_positioned),
         score, success, fail, timer,
         int(f1[0]), int(f1[1]),
         int(f2[0]), int(f2[1]),
@@ -275,46 +295,46 @@ while run:
             if DEBUG:
                 print(f"Error sending game state to {player}: {e}")
     
-    if success:
+    if success and not reset_required:
+        success_time = time.time()
+        reset_required = True
         score += 1
         timer = 3
         high_force_start_time = 0
         force_threshold_time = 5
         append_to_csv(1, filename="succes_rate")
         append_to_csv(time.time() - start_time)
-        success = False
     
-    if fail:
+    if fail and not reset_required:
+        success_time = time.time()
+        reset_required = True
         timer = 3
         high_force_start_time = 0
         force_threshold_time = 5
         append_to_csv(0, filename="succes_rate")
-        append_to_csv(time.time() - start_time)
-        fail = False
+
     # timer for goal position
     position_blackhole = [blackhole_x, blackhole_y] #change to position where it is being blit
     position_asteroid = ball.body.position
 
-    error_margin = 500
-
-    if (abs(position_asteroid[0] - position_blackhole[0]) <= error_margin and 
-        abs(position_asteroid[1] - position_blackhole[1]) <= error_margin):
-        
-        # Check if 1 second has passed since the last timer update
-        current_time = time.time()
-        if current_time - last_timer_update >= 1 and timer > 0:
-            timer -= 1
-            last_timer_update = current_time  # Update the last timer update time
-        
-        #countdown = TEXT_FONT.render(f'{timer}', True, (255, 255, 0))
-        if timer == 0:
-            #countdown = TEXT_FONT.render(f'SUCCES!', True, (255, 255, 0))
-            blackhole_positioned = False
-            success = True
-        #window.blit(countdown, (position_asteroid[0], position_asteroid[1]))
-    else:
-        timer = 3
-        last_timer_update = time.time()
+    if not reset_required:
+        if (abs(position_asteroid[0] - position_blackhole[0]) <= error_margin and 
+            abs(position_asteroid[1] - position_blackhole[1]) <= error_margin):
+            
+            # Check if 1 second has passed since the last timer update
+            current_time = time.time()
+            if current_time - last_timer_update >= 1 and timer > 0:
+                timer -= 1
+                last_timer_update = current_time  # Update the last timer update time
+            
+            #countdown = TEXT_FONT.render(f'{timer}', True, (255, 255, 0))
+            if timer == 0:
+                #countdown = TEXT_FONT.render(f'SUCCES!', True, (255, 255, 0))
+                success = True
+            #window.blit(countdown, (position_asteroid[0], position_asteroid[1]))
+        else:
+            timer = 3
+            last_timer_update = time.time()
     force = 40
     if 50 <= np.abs(force):
         if high_force_start_time == 0:
