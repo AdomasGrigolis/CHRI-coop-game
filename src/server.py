@@ -118,7 +118,7 @@ space.gravity = (0, int(100 * cfg_simulation['gravity']))
 init_object_pos = list(np.array(screen_size) * np.array(cfg_simulation['object']['init_position']))
 object_mass = cfg_simulation['object']['mass']
 
-ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
+ball = create_ball(space, init_object_pos, mass=100000, radius=random.randint(30, 100))
 floor = create_static_wall(space, (400, 580))
 arm1_link1, arm1_link2, end_effector_shape1 = create_arm(space, (xc-350, yc), 250, 200)
 arm2_link1, arm2_link2, end_effector_shape2 = create_arm(space, (xc+350, yc), 250, 200)
@@ -146,6 +146,7 @@ mouse_joint2 = pymunk.PivotJoint(arm2_link2, mouse_body2, (200, 0), (0, 0))  # 1
 mouse_joint2.max_force = 100000  # the force of following
 mouse_joint2.error_bias = 0.01   # the smoothness of following
 space.add(mouse_body2, mouse_joint2)
+
 
 ##ball.filter = pymunk.ShapeFilter(group=3)  # Assuming ball is the asteroid
 
@@ -249,11 +250,20 @@ while run:
         p1 = np.array(end_effector_shape1.body.position)
     if overlap2:
         p2 = np.array(end_effector_shape2.body.position)
+    # Get positions
+    arm1_link1_x, arm1_link1_y = arm1_link1.position
+    arm1_link2_x, arm1_link2_y = arm1_link2.position
+
+    arm2_link1_x, arm2_link1_y = arm2_link1.position
+    arm2_link2_x, arm2_link2_y = arm2_link2.position
+    # Get end effector positions
+    end_effector1_position_x, end_effector1_position_y = end_effector_shape1.body.position
+    end_effector2_position_x, end_effector2_position_y = end_effector_shape2.body.position
     
     # Send state to clients
     # Serialize
     serialized_state = struct.pack(
-        '=fi2i2i2ii2ibiiii2f2f',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
+        '=fi2i2i2ii2ibiiii2f2f2f2f2f2f2f2f',  # Added 4 more '2f' for the arm and end effector positions
         t,
         i,
         int(p1[0]), int(p1[1]),
@@ -265,6 +275,12 @@ while run:
         score, success, fail, timer,
         int(f1[0]), int(f1[1]),
         int(f2[0]), int(f2[1]),
+        float(arm1_link1_x), float(arm1_link1_y),
+        float(arm1_link2_x), float(arm1_link2_y),
+        float(arm2_link1_x), float(arm2_link1_y),
+        float(arm2_link2_x), float(arm2_link2_y),
+        float(end_effector1_position_x), float(end_effector1_position_y),
+        float(end_effector2_position_x), float(end_effector2_position_y)
     )
 
     # Send the serialized state to all players
@@ -295,7 +311,7 @@ while run:
     position_blackhole = [blackhole_x, blackhole_y] #change to position where it is being blit
     position_asteroid = ball.body.position
 
-    error_margin = 500
+    error_margin = 50
 
     if (abs(position_asteroid[0] - position_blackhole[0]) <= error_margin and 
         abs(position_asteroid[1] - position_blackhole[1]) <= error_margin):

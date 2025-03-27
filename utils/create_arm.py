@@ -82,3 +82,28 @@ def create_arm(space, base_pos, length1, length2):
     space.add(pivot, limit)
 
     return arm1, arm2, end_effector_shape
+
+def draw_arm_segment(screen, start_pos, end_pos, width, color):
+    # Calculate angle and length
+    dx = end_pos[0] - start_pos[0]
+    dy = end_pos[1] - start_pos[1]
+    angle = math.atan2(dy, dx)
+    length = math.sqrt(dx**2 + dy**2)
+    
+    # Create a surface for the rectangle
+    rect_surface = pygame.Surface((length, width), pygame.SRCALPHA)
+    pygame.draw.rect(rect_surface, color, (0, 0, length, width))
+    
+    # Rotate the surface
+    rotated_surface = pygame.transform.rotate(rect_surface, -math.degrees(angle))
+    
+    # Calculate position to blit
+    rect = rotated_surface.get_rect()
+    rect.center = (start_pos[0] + dx/2, start_pos[1] + dy/2)
+    
+    # Draw on screen
+    screen.blit(rotated_surface, rect)
+    
+    # Draw joint circles
+    JOINT_RADIUS = 8
+    pygame.draw.circle(screen, color, (int(start_pos[0]), int(start_pos[1])), JOINT_RADIUS)

@@ -1,7 +1,7 @@
 import pymunk
 
-_default_elasticity = 0.5
-_default_friction = 0.5
+_default_elasticity = 0.2
+_default_friction = 0.8
 
 def create_box(space, position, size=(50, 50), mass=1, elasticity=_default_elasticity, friction=_default_friction):
     body = pymunk.Body(mass, pymunk.moment_for_box(mass, size))

@@ -8,6 +8,7 @@ import pygame
 from utils.convert_pos import convert_pos
 from utils.thread_utils import client_networking_rec_thread, client_latency_thread
 from utils.physics import Physics
+from utils.create_arm import draw_arm_segment
 import random
 # Settings
 config_set_path = os.path.join(os.path.dirname(__file__), "../config/settings.json")
@@ -135,11 +136,15 @@ while run:
                 run = False
         except UnicodeDecodeError:
             try:
-                t_server, i_server, p1_x, p1_y, p2_x, p2_y,pobj_x, pobj_y,\
+                t_server, i_server, p1_x, p1_y, p2_x, p2_y, pobj_x, pobj_y,\
                 rad_obj, \
                 blackhole_x, blackhole_y, blackhole_positioned, \
                 score1, success, fail, timer, \
-                force_vector1_x, force_vector1_y, force_vector2_x, force_vector2_y = struct.unpack('=fi2i2i2ii2ibiiii2f2f', data)
+                force_vector1_x, force_vector1_y, force_vector2_x, force_vector2_y, \
+                arm1_link1_x, arm1_link1_y, arm1_link2_x, arm1_link2_y, \
+                arm2_link1_x, arm2_link1_y, arm2_link2_x, arm2_link2_y, \
+                end_effector1_x, end_effector1_y, end_effector2_x, end_effector2_y = struct.unpack('=fi2i2i2ii2ibiiii2f2f2f2f2f2f2f2f', data)
+                
                 player_1_pos, player_2_pos = np.array([p1_x, p1_y]), np.array([p2_x, p2_y])
                 if player_number == 1: force_vector = np.array([force_vector1_x, force_vector1_y])
                 else: force_vector = np.array([force_vector2_x, force_vector2_y])
@@ -195,7 +200,7 @@ while run:
         fail = False
         window.blit(wrong, (0, 0))
         pygame.display.flip()
-        pygame.time.delay(1000)
+        #pygame.time.delay(1000)
         background = pygame.image.load(image_path)
         asteroid = pygame.image.load(image_asteroid)
         blackhole = pygame.image.load(image_blackhole)
@@ -258,7 +263,53 @@ while run:
         countdown = TEXT_FONT.render(f'SUCCES!', True, (255, 255, 0))
         window.blit(countdown, (asteroid_position_x, asteroid_position_y))
     
-    #pygame.draw.circle(window, (0, 255, 255), (pobj_x, pobj_y), rad_obj) #Object 
+    #ADD ARMS
+    # Assuming you already have a Pygame screen initialized
+    # Define rectangle dimensions
+    # Link dimensions
+    LINK_WIDTH = 5
+    LINK_LENGTH_1 = 200  # This should match your arm segment length
+    LINK_LENGTH_2 = 200
+    JOINT_RADIUS = 8
+    END_EFFECTOR_WIDTH = 20
+    END_EFFECTOR_HEIGHT = 80
+    # Define colors (RGB)
+    BLUE = (0, 0, 255)         # Arm 1 Link 1
+    GREEN = (0, 255, 0)        # Arm 1 Link 2
+    RED = (255, 0, 0)          # End Effector 1
+    PURPLE = (128, 0, 128)     # Arm 2 Link 1
+    ORANGE = (255, 165, 0)     # Arm 2 Link 2
+    YELLOW = (255, 255, 0)     # End Effector 2
+
+    # Get base positions (these would be fixed based on your setup)
+    arm1_base_x, arm1_base_y = xc-350, yc  # Use the actual base coordinates from your setup
+    arm2_base_x, arm2_base_y = xc+350, yc  # Use the actual base coordinates from your setup
+
+    # Draw complete arms with both links
+    # Arm 1
+    draw_arm_segment(window, (arm1_base_x, arm1_base_y), (arm1_link1_x, arm1_link1_y), LINK_WIDTH, RED)
+    draw_arm_segment(window, (arm1_link1_x, arm1_link1_y), (arm1_link2_x, arm1_link2_y), LINK_WIDTH, RED)
+    draw_arm_segment(window, (arm1_link2_x, arm1_link2_y), (end_effector1_x, end_effector1_y), LINK_WIDTH, RED)
+
+    # Arm 2
+    draw_arm_segment(window, (arm2_base_x, arm2_base_y), (arm2_link1_x, arm2_link1_y), LINK_WIDTH, BLUE)
+    draw_arm_segment(window, (arm2_link1_x, arm2_link1_y), (arm2_link2_x, arm2_link2_y), LINK_WIDTH, BLUE)
+    draw_arm_segment(window, (arm2_link2_x, arm2_link2_y), (end_effector2_x, end_effector2_y), LINK_WIDTH, BLUE)
+
+    # Draw end effectors as squares
+    # Draw end effectors as rectangles
+    # For end effector 1
+    pygame.draw.rect(window, RED, 
+                    (end_effector1_x - END_EFFECTOR_WIDTH//2, 
+                    end_effector1_y - END_EFFECTOR_HEIGHT//2, 
+                    END_EFFECTOR_WIDTH, END_EFFECTOR_HEIGHT))
+
+    # For end effector 2
+    pygame.draw.rect(window, BLUE, 
+                    (end_effector2_x - END_EFFECTOR_WIDTH//2, 
+                    end_effector2_y - END_EFFECTOR_HEIGHT//2, 
+                    END_EFFECTOR_WIDTH, END_EFFECTOR_HEIGHT))
+
 
     #add blackhole
     blackhole = pygame.transform.scale(blackhole, (rad_obj*scale_factor, rad_obj*scale_factor))
