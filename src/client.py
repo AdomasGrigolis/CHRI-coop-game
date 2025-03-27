@@ -112,7 +112,6 @@ TEXT_FONT = pygame.font.Font(font_path, 32)
 title = TEXT_FONT.render(f'SPACE STATION SAVER!', True, (0, 255, 0))
 
 #Initialize variables
-force = 0 
 force_vector = np.array([0, 0])
 blackhole_positioned = True 
 success = False
@@ -237,14 +236,14 @@ while run:
     
     # Add force meter
     force_meter_bg = pygame.Rect(10, 25, 200, 20)  # Background rectangle
-    force_meter_fill = pygame.Rect(10, 25, force * 2, 20)  # Foreground rectangle that changes with force
+    force_meter_fill = pygame.Rect(10, 25, np.linalg.norm(force_vector) * 2, 20)  # Foreground rectangle that changes with force
     pygame.draw.rect(window, (200, 200, 200), force_meter_bg)  # Draw background (light gray)
-    if 0<np.abs(force) <25: 
+    if 0<np.abs(np.linalg.norm(force_vector)) <25: 
         pygame.draw.rect(window, (0, 255, 0), force_meter_fill)  # Draw fill (green)
-    elif 25<np.abs(force) <50:
+    elif 25<np.abs(np.linalg.norm(force_vector)) <50:
         pygame.draw.rect(window, (255, 255, 0), force_meter_fill)  # Draw fill (YELLOW)
 
-    elif 50 <= np.abs(force):
+    elif 50 <= np.abs(np.linalg.norm(force_vector)):
         warning = pygame.transform.scale(warning, (50, 50))
         window.blit(warning, (pm[0], pm[1]))
         pygame.draw.rect(window, (255, 0, 0), force_meter_fill)
