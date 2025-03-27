@@ -7,6 +7,7 @@ from queue import Queue
 import pygame
 from utils.convert_pos import convert_pos
 from utils.thread_utils import client_networking_rec_thread, client_latency_thread
+from Physics import Physics
 import random
 # Settings
 config_set_path = os.path.join(os.path.dirname(__file__), "../config/settings.json")
@@ -66,6 +67,16 @@ while running:
 
     time.sleep(0.5)
 
+# Haptic device initiate
+device_connected = False
+G_ff = np.diag([1, 1])
+G_fb = np.diag([1, 1])
+# Connect the device
+if player_number == 1:
+    physics = Physics(hardware_version=2)
+    device_connected = physics.is_device_connected()
+    if DEBUG: print(f"Device connected: {device_connected}")
+
 # Pygame setup
 pygame.init() # start pygame
 window = pygame.display.set_mode(tuple(screen_size)) # create a window (size in pixels)
@@ -102,7 +113,7 @@ title = TEXT_FONT.render(f'SPACE STATION SAVER!', True, (0, 255, 0))
 
 #Initialize variables
 force = 0 
-timer = 3
+force_vector = np.array([0, 0])
 blackhole_positioned = True 
 success = False
 fail = False
@@ -148,8 +159,18 @@ while run:
             if event.key == ord(cfg_usr["keybinds"]["quit_game"]): # force quit with q button
                 run = False
     
+    # Haptic device force update
+    if device_connected: #set forces only if the device is connected
+        physics.update_force(G_fb @ force_vector)
+    
     # Read mouse position
-    pm = np.array(pygame.mouse.get_pos())
+    # Haptic device position
+    if device_connected:
+        pA0,pB0,pA,pB,pE = physics.get_device_pos() #positions of the various points of the pantograph
+        pm = convert_pos(pygame.display.get_surface().get_size(), settings["hardware_scale"], settings["vertical_offset"], pE) #convert the physical positions to screen coordinates
+        pm = G_ff @ pm
+    else:
+        pm = np.array(pygame.mouse.get_pos())
     #if DEBUG: print(f"Mouse position: {pm}")
 
     # Send data to server

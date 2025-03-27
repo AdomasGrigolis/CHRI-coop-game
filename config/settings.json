@@ -3,7 +3,8 @@
         "width": 800,
         "height": 600
     },
-    "hardware_scale": 800,
+    "hardware_scale": 8000,
+    "vertical_offset": 200,
     "server":{
         "ip": "127.0.0.1",
         "port": 40001,
