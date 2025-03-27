@@ -181,6 +181,7 @@ latency_thread_instance.start()
 
 fail = False
 success = False
+timer = 3
 
 # MAIN LOOP
 i = 0
@@ -246,7 +247,7 @@ while run:
     # Send state to clients
     # Serialize
     serialized_state = struct.pack(
-        '=fi2i2i2ii2ibi',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
+        '=fi2i2i2ii2ibiii',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
         t,
         i,
         int(p1[0]), int(p1[1]),
