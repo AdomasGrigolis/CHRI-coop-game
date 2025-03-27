@@ -261,7 +261,7 @@ while run:
     # Send state to clients
     # Serialize
     serialized_state = struct.pack(
-        '=fi2i2i2ii2ibiiii',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
+        '=fi2i2i2ii2ibiiii2f2f',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
         t,
         i,
         int(p1[0]), int(p1[1]),
@@ -270,7 +270,9 @@ while run:
         int(ball.radius),
         int(blackhole_x), int(blackhole_y),
         int(blackhole_positioned),
-        score, success, fail, timer
+        score, success, fail, timer,
+        int(f1[0]), int(f1[1]),
+        int(f2[0]), int(f2[1]),
     )
 
     # Send the serialized state to all players

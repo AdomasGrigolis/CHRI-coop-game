@@ -138,8 +138,11 @@ while run:
                 t_server, i_server, p1_x, p1_y, p2_x, p2_y,pobj_x, pobj_y,\
                 rad_obj, \
                 blackhole_x, blackhole_y, blackhole_positioned, \
-                score1, success, fail, timer = struct.unpack('=fi2i2i2ii2ibiiii', data)
+                score1, success, fail, timer, \
+                force_vector1_x, force_vector1_y, force_vector2_x, force_vector2_y = struct.unpack('=fi2i2i2ii2ibiiii2f2f', data)
                 player_1_pos, player_2_pos = np.array([p1_x, p1_y]), np.array([p2_x, p2_y])
+                if player_number == 1: force_vector = np.array([force_vector1_x, force_vector1_y])
+                else: force_vector = np.array([force_vector2_x, force_vector2_y])
                 #if DEBUG: print(f"Received game state: {t}, {i_server}, {p1_x}, {p1_y}, {p2_x}, {p2_y}")
             except struct.error as e:
                 if DEBUG: print(f"Failed to unpack binary data: {e}")
@@ -154,7 +157,6 @@ while run:
                 blackhole_positioned = False
             else:
                 blackhole_positioned = True
-            force += 10 if event.key == pygame.K_u else -10 if event.key == pygame.K_y else 0
             if event.key == ord(cfg_usr["keybinds"]["quit_game"]): # force quit with q button
                 run = False
     
@@ -174,12 +176,8 @@ while run:
 
     # Send data to server
     if success:
-        end_time = time.time()
-        time_elapsed = end_time - start_time
-        print('Time elapsed:', time_elapsed)
         blackhole_positioned = False
         success = False
-        force = 0
         window.blit(correct, (0, 0))
         pygame.display.flip()
         pygame.time.delay(1000)
@@ -195,7 +193,6 @@ while run:
     if fail:
         blackhole_positioned = False
         fail = False
-        force = 0
         window.blit(wrong, (0, 0))
         pygame.display.flip()
         pygame.time.delay(1000)
@@ -261,8 +258,6 @@ while run:
         countdown = TEXT_FONT.render(f'SUCCES!', True, (255, 255, 0))
         window.blit(countdown, (asteroid_position_x, asteroid_position_y))
     
-
-    if DEBUG: print('FORCE IS NOW:', force)
     #pygame.draw.circle(window, (0, 255, 255), (pobj_x, pobj_y), rad_obj) #Object 
 
     #add blackhole
