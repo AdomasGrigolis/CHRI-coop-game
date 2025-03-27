@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+## !/usr/bin/env python3
+## -*- coding: utf-8 -*-
 import numpy as np
 import math, json, os, socket, struct, time
 import threading
@@ -9,6 +9,7 @@ import pygame
 import pymunk, pymunk.pygame_util
 from utils.thread_utils import server_networking_thread, server_latency_thread
 from utils.post_collision import post_collision, latest_impulse, player_collisions, ensure_no_overlap
+from utils.create_arm import create_arm
 import random
 from utils.pymunk_simple_objects import *
 
@@ -119,15 +120,32 @@ object_mass = cfg_simulation['object']['mass']
 
 ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
 floor = create_static_wall(space, (400, 580))
+arm1_link1, arm1_link2, end_effector_shape1 = create_arm(space, (xc-350, yc), 250, 200)
+arm2_link1, arm2_link2, end_effector_shape2 = create_arm(space, (xc+350, yc), 250, 200)
+#create_arm(space, (xc, yc), 150, 100)
 
 # Create mouse circles
-circle1_shape = create_ball(space, tuple(p1), radius=10, mass=10,)
-circle1_shape.color = (255, 0, 0, 255)
-circle1_shape.filter = pymunk.ShapeFilter(group=1)  # Add this line
+# circle1_shape = create_ball(space, tuple(p1), radius=10, mass=10)
+# circle1_shape.color = (255, 0, 0, 255)
+# circle1_shape.filter = pymunk.ShapeFilter(group=1)  # Add this line
+end_effector_shape1.color = (255, 0, 0, 255)
+end_effector_shape1.filter = pymunk.ShapeFilter(group=1)  # Add this line
+mouse_body1 = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+mouse_joint1 = pymunk.PivotJoint(arm1_link2, mouse_body1, (200, 0), (0, 0))  # 100 是 arm2 的长度
+mouse_joint1.max_force = 100000  # the force of following
+mouse_joint1.error_bias = 0.01   # the smoothness of following
+space.add(mouse_body1, mouse_joint1)
 
-circle2_shape = create_ball(space, tuple(p2), radius=10, mass=10)
-circle2_shape.color = (255, 255, 0, 0)
-circle2_shape.filter = pymunk.ShapeFilter(group=2)  # Add this line
+# circle2_shape = create_ball(space, tuple(p2), radius=10, mass=10)
+# circle2_shape.color = (255, 255, 0, 0)
+# circle2_shape.filter = pymunk.ShapeFilter(group=2)  # Add this line
+end_effector_shape2.color = (255, 255, 0, 0)
+end_effector_shape2.filter = pymunk.ShapeFilter(group=2)  # Add this line
+mouse_body2 = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+mouse_joint2 = pymunk.PivotJoint(arm2_link2, mouse_body2, (200, 0), (0, 0))  # 100 是 arm2 的长度
+mouse_joint2.max_force = 100000  # the force of following
+mouse_joint2.error_bias = 0.01   # the smoothness of following
+space.add(mouse_body2, mouse_joint2)
 
 ##ball.filter = pymunk.ShapeFilter(group=3)  # Assuming ball is the asteroid
 
@@ -136,8 +154,8 @@ circle2_type = 2
 ball_type = 3
 
 # Assign these types to your shapes
-circle1_shape.collision_type = circle1_type
-circle2_shape.collision_type = circle2_type
+end_effector_shape1.collision_type = circle1_type
+end_effector_shape2.collision_type = circle2_type
 ##ball.collision_type = ball_type
 
 # Create a collision handler
@@ -206,18 +224,19 @@ while run:
         blackhole_positioned = True
 
     # Update circle for mouse position
-    circle1_shape.body.position = tuple(p1)
-    circle2_shape.body.position = tuple(p2)
+    mouse_body1.position = tuple(p1)
+
+    mouse_body2.position = tuple(p2)
     if latest_impulse[0] != 0 or latest_impulse[1] != 0:
         print(f"Latest collision impulse: {latest_impulse}")
 
     # Update circle for mouse position
-    overlap1 = ensure_no_overlap(circle1_shape, ball)
-    overlap2 = ensure_no_overlap(circle2_shape, ball)
+    overlap1 = ensure_no_overlap(end_effector_shape1, ball)
+    overlap2 = ensure_no_overlap(end_effector_shape2, ball)
     if overlap1:
-        p1 = np.array(circle1_shape.body.position)
+        p1 = np.array(end_effector_shape1.body.position)
     if overlap2:
-        p2 = np.array(circle2_shape.body.position)
+        p2 = np.array(end_effector_shape2.body.position)
     
     # Send state to clients
     # Serialize
