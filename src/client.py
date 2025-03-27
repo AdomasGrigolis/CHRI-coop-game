@@ -180,7 +180,7 @@ while run:
         success = False
         window.blit(correct, (0, 0))
         pygame.display.flip()
-        pygame.time.delay(1000)
+        #pygame.time.delay(1000)
         background = pygame.image.load(image_path)
         asteroid = pygame.image.load(image_asteroid)
         blackhole = pygame.image.load(image_blackhole)

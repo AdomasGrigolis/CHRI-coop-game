@@ -12,7 +12,7 @@ from utils.post_collision import post_collision, latest_impulse, player_collisio
 from utils.create_arm import create_arm
 import random
 from utils.pymunk_simple_objects import *
-
+from utils.append_to_csv import append_to_csv
 # Settings
 config_set_path = os.path.join(os.path.dirname(__file__), "../config/settings.json")
 config_sim_path = os.path.join(os.path.dirname(__file__), "../config/simulation.json")
@@ -234,14 +234,6 @@ while run:
         ball = create_ball(space, init_object_pos, mass=random.randint(100, 1000), radius=random.randint(30, 100))
         blackhole_positioned = True
 
-        #RESET GAME VARIABLES
-        success = False
-        fail = False
-    if success:
-        score += 1
-        timer = 3
-        high_force_start_time = 0
-        force_threshold_time = 5
 
     # Update circle for mouse position
     mouse_body1.position = tuple(p1)
@@ -283,12 +275,27 @@ while run:
             if DEBUG:
                 print(f"Error sending game state to {player}: {e}")
     
-
+    if success:
+        score += 1
+        timer = 3
+        high_force_start_time = 0
+        force_threshold_time = 5
+        append_to_csv(1, filename="succes_rate")
+        append_to_csv(time.time() - start_time)
+        success = False
+    
+    if fail:
+        timer = 3
+        high_force_start_time = 0
+        force_threshold_time = 5
+        append_to_csv(0, filename="succes_rate")
+        append_to_csv(time.time() - start_time)
+        fail = False
     # timer for goal position
     position_blackhole = [blackhole_x, blackhole_y] #change to position where it is being blit
     position_asteroid = ball.body.position
 
-    error_margin = 50
+    error_margin = 500
 
     if (abs(position_asteroid[0] - position_blackhole[0]) <= error_margin and 
         abs(position_asteroid[1] - position_blackhole[1]) <= error_margin):
