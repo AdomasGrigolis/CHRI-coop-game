@@ -7,7 +7,7 @@ from queue import Queue
 import pygame
 from utils.convert_pos import convert_pos
 from utils.thread_utils import client_networking_rec_thread, client_latency_thread
-from Physics import Physics
+from utils.physics import Physics
 import random
 # Settings
 config_set_path = os.path.join(os.path.dirname(__file__), "../config/settings.json")
