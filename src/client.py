@@ -105,8 +105,6 @@ force = 0
 timer = 3
 blackhole_positioned = True 
 success = False
-high_force_start_time = 0
-force_threshold_time = 5  # 5 seconds
 fail = False
 score = 0
 # MAIN LOOP
@@ -130,7 +128,7 @@ while run:
                 t_server, i_server, p1_x, p1_y, p2_x, p2_y,pobj_x, pobj_y,\
                 rad_obj, \
                 blackhole_x, blackhole_y, blackhole_positioned, \
-                score1, success, fail = struct.unpack('=fi2i2i2ii2ibi', data)
+                score1, success, fail, timer = struct.unpack('=fi2i2i2ii2ibiiii', data)
                 player_1_pos, player_2_pos = np.array([p1_x, p1_y]), np.array([p2_x, p2_y])
                 #if DEBUG: print(f"Received game state: {t}, {i_server}, {p1_x}, {p1_y}, {p2_x}, {p2_y}")
             except struct.error as e:
@@ -162,8 +160,6 @@ while run:
         blackhole_positioned = False
         success = False
         force = 0
-        high_force_start_time = 0
-        force_threshold_time = 5
         window.blit(correct, (0, 0))
         pygame.display.flip()
         pygame.time.delay(1000)
@@ -180,8 +176,6 @@ while run:
         blackhole_positioned = False
         fail = False
         force = 0
-        high_force_start_time = 0
-        force_threshold_time = 5
         window.blit(wrong, (0, 0))
         pygame.display.flip()
         pygame.time.delay(1000)
@@ -233,14 +227,21 @@ while run:
         warning = pygame.transform.scale(warning, (50, 50))
         window.blit(warning, (pm[0], pm[1]))
         pygame.draw.rect(window, (255, 0, 0), force_meter_fill)
-        if high_force_start_time == 0:
-            high_force_start_time = pygame.time.get_ticks()
+        #if high_force_start_time == 0:
+        #    high_force_start_time = pygame.time.get_ticks()
 
-        current_time = pygame.time.get_ticks()
-        if (current_time - high_force_start_time) / 1000 >= force_threshold_time:
-            fail = True
-        
-        
+        #current_time = pygame.time.get_ticks()
+        #if (current_time - high_force_start_time) / 1000 >= force_threshold_time:
+            #fail = True
+    
+    if timer != 3:
+        countdown = TEXT_FONT.render(f'{timer}', True, (255, 255, 0))  
+        window.blit(countdown, (asteroid_position_x, asteroid_position_y))
+    if timer == 0:
+        countdown = TEXT_FONT.render(f'SUCCES!', True, (255, 255, 0))
+        window.blit(countdown, (asteroid_position_x, asteroid_position_y))
+    
+
     if DEBUG: print('FORCE IS NOW:', force)
     #pygame.draw.circle(window, (0, 255, 255), (pobj_x, pobj_y), rad_obj) #Object 
 
@@ -255,7 +256,7 @@ while run:
 
     # add score
 
-    score_text = TEXT_FONT.render(f'SCORE: {score/2}/10', True, (0, 255, 255))
+    score_text = TEXT_FONT.render(f'SCORE: {score}/10', True, (0, 255, 255))
     window.blit(score_text, (10, 45) )
 
     # Latency

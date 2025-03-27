@@ -179,9 +179,12 @@ latency_thread_instance = threading.Thread(target=server_latency_thread, args=(l
 network_thread.start()
 latency_thread_instance.start()
 
+#initialize variables
 fail = False
 success = False
-
+high_force_start_time = 0
+force_threshold_time = 5  # 5 seconds
+timer = 3 
 # MAIN LOOP
 i = 0
 start_time = time.time()
@@ -197,6 +200,9 @@ while run:
             elif event.key == ord(settings["server"]["keybinds"]["start_sim"]):  # Apply force when spacebar is pressed
                 #ball.body.apply_force_at_local_point(initial_impulse, (0, 0))
                 ball.body.velocity = initial_impulse
+            force += 10 if event.key == pygame.K_c else -10 if event.key == pygame.K_y else 0
+            success = True if event.key == pygame.K_x else False
+            fail = True if event.key == pygame.K_z else False
 
     # Simulation
     # Process data from players
@@ -228,6 +234,15 @@ while run:
         ball = create_ball(space, init_object_pos, mass=random.randint(100, 1000), radius=random.randint(30, 100))
         blackhole_positioned = True
 
+        #RESET GAME VARIABLES
+        success = False
+        fail = False
+    if success:
+        score += 1
+        timer = 3
+        high_force_start_time = 0
+        force_threshold_time = 5
+
     # Update circle for mouse position
     mouse_body1.position = tuple(p1)
 
@@ -246,7 +261,7 @@ while run:
     # Send state to clients
     # Serialize
     serialized_state = struct.pack(
-        '=fi2i2i2ii2ibi',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
+        '=fi2i2i2ii2ibiiii',  # Format: float (t), 2 ints (pm1), 2 ints (pm2), 2 ints (p1), 2 ints (p2)
         t,
         i,
         int(p1[0]), int(p1[1]),
@@ -255,7 +270,7 @@ while run:
         int(ball.radius),
         int(blackhole_x), int(blackhole_y),
         int(blackhole_positioned),
-        score, success, fail
+        score, success, fail, timer
     )
 
     # Send the serialized state to all players
@@ -291,6 +306,14 @@ while run:
     else:
         timer = 3
         last_timer_update = time.time()
+    force = 40
+    if 50 <= np.abs(force):
+        if high_force_start_time == 0:
+            high_force_start_time = pygame.time.get_ticks()
+
+        current_time = pygame.time.get_ticks()
+        if (current_time - high_force_start_time) / 1000 >= force_threshold_time:
+            fail = True
 
     # increase loop counter
     i = i + 1
