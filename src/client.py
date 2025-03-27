@@ -108,7 +108,7 @@ succes = False
 high_force_start_time = 0
 force_threshold_time = 5  # 5 seconds
 fail = False
-
+score = 0
 # MAIN LOOP
 i = 0
 t_server = 0.0
@@ -128,7 +128,7 @@ while run:
                 t_server, i_server, p1_x, p1_y, p2_x, p2_y,pobj_x, pobj_y,\
                 rad_obj, \
                 blackhole_x, blackhole_y, blackhole_positioned, \
-                score = struct.unpack('=fi2i2i2ii2ibi', data)
+                score1 = struct.unpack('=fi2i2i2ii2ibi', data)
                 player_1_pos, player_2_pos = np.array([p1_x, p1_y]), np.array([p2_x, p2_y])
                 #if DEBUG: print(f"Received game state: {t}, {i_server}, {p1_x}, {p1_y}, {p2_x}, {p2_y}")
             except struct.error as e:
@@ -156,12 +156,36 @@ while run:
     if succes:
         blackhole_positioned = False
         succes = False
-        #window.blit(correct, (0, 0))
+        force = 0
+        high_force_start_time = 0
+        force_threshold_time = 5
+        window.blit(correct, (0, 0))
+        pygame.display.flip()
+        pygame.time.delay(1000)
+        background = pygame.image.load(image_path)
+        asteroid = pygame.image.load(image_asteroid)
+        blackhole = pygame.image.load(image_blackhole)
+        warning = pygame.image.load(image_warning)
+        correct = pygame.image.load(image_correct)
+        wrong = pygame.image.load(image_wrong)
+        score += 1
     
     if fail:
         blackhole_positioned = False
         fail = False
-        #window.blit(wrong, (0, 0))
+        force = 0
+        high_force_start_time = 0
+        force_threshold_time = 5
+        window.blit(wrong, (0, 0))
+        pygame.display.flip()
+        pygame.time.delay(1000)
+        background = pygame.image.load(image_path)
+        asteroid = pygame.image.load(image_asteroid)
+        blackhole = pygame.image.load(image_blackhole)
+        warning = pygame.image.load(image_warning)
+        correct = pygame.image.load(image_correct)
+        wrong = pygame.image.load(image_wrong)
+        score += 0
 
     
     packed_data = bytearray(struct.pack("=2ib", pm[0], pm[1], int(blackhole_positioned)))
@@ -208,7 +232,6 @@ while run:
 
         current_time = pygame.time.get_ticks()
         if (current_time - high_force_start_time) / 1000 >= force_threshold_time:
-            print('TIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUPTIMESUP')
             fail = True
         
         
@@ -242,7 +265,7 @@ while run:
         timer = 3
 
     # add score
-    score = score - 1
+
     score_text = TEXT_FONT.render(f'SCORE: {score/2}/10', True, (0, 255, 255))
     window.blit(score_text, (10, 45) )
 
