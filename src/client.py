@@ -77,7 +77,10 @@ G_fb = np.diag([1/max_force*5, 1/max_force*5])
 if player_number == 1:
     physics = Physics(hardware_version=2)
     device_connected = physics.is_device_connected()
+    os.environ['SDL_VIDEO_WINDOW_POS'] = "900,50"
     if DEBUG: print(f"Device connected: {device_connected}")
+if player_number == 2:
+    os.environ['SDL_VIDEO_WINDOW_POS'] = "50,50"
 
 # Pygame setup
 pygame.init() # start pygame

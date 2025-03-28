@@ -10,6 +10,7 @@ import pymunk, pymunk.pygame_util
 from utils.thread_utils import server_networking_thread, server_latency_thread
 from utils.post_collision import post_collision, latest_impulse, player_collisions, ensure_no_overlap
 from utils.create_arm import create_arm
+from utils.remake_objects import remake_blackhole
 import random
 from utils.pymunk_simple_objects import *
 from utils.append_to_csv import append_to_csv
@@ -128,7 +129,7 @@ WALL_MASK = BALL_CATEGORY
 BALL_MASK = WALL_CATEGORY | ARM_CATEGORY
 ARM_MASK = BALL_CATEGORY
 
-ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
+ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 70))
 floor = create_static_wall(space, (0, screen_size[1]), (screen_size[0], screen_size[1]), category=WALL_CATEGORY, mask=WALL_MASK)
 #left_wall = create_static_wall(space, (0, 0), (0, screen_size[1]), category=WALL_CATEGORY, mask=WALL_MASK)
 #right_wall = create_static_wall(space, (screen_size[0], 0), (screen_size[0], screen_size[1]), category=WALL_CATEGORY, mask=WALL_MASK)
@@ -215,8 +216,8 @@ start_time = time.time()
 last_timer_update = time.time()
 run = True
 success_time = 0
-blackhole_x = random.randint(0, window_width - 220) #220 is blackhole height and width
-blackhole_y = random.randint(0, window_height - 220)
+
+blackhole_x, blackhole_y = remake_blackhole(screen_size)
 trial_version = settings["server"]["trial_version"]
 while run:
     for event in pygame.event.get(): # interrupt function
@@ -259,10 +260,9 @@ while run:
         start_time = time.time()
         success = False
         fail = False
-        blackhole_x = random.randint(0, window_width - 220) #220 is blackhole height and width
-        blackhole_y = random.randint(0, window_height - 220)
+        blackhole_x, blackhole_y = remake_blackhole(screen_size)
         space.remove(ball.body, ball)
-        ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
+        ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 70))
         reset_required = False
         high_force_start_time = 0
         # Assign these types to your shapes
@@ -281,10 +281,9 @@ while run:
         start_time = time.time()
         success = False
         fail = False
-        blackhole_x = random.randint(0, window_width - 220) #220 is blackhole height and width
-        blackhole_y = random.randint(0, window_height - 220)
+        blackhole_x, blackhole_y = remake_blackhole(screen_size)
         space.remove(ball.body, ball)
-        ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
+        ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 70))
         reset_required = False
         force_reset = False
         high_force_start_time = 0
@@ -444,6 +443,20 @@ while run:
     # Draw blackhole
     pygame.draw.circle(window, (0, 0, 0), (blackhole_x, blackhole_y), radius=ball.radius)
     space.debug_draw(draw_options)
+
+    # Draw goal zone
+    rect_x, rect_y = 100, 80  # Top-left corner
+    rect_width, rect_height = screen_size[0] - rect_x * 2, screen_size[1] - rect_y * 2  # Width and height
+
+    # Create a transparent surface
+    transparent_surface = pygame.Surface((rect_width, rect_height), pygame.SRCALPHA)
+    transparent_surface.fill((255, 0, 0, 50))  # Red fill with 50 alpha (transparency)
+
+    # Draw the transparent rectangle
+    window.blit(transparent_surface, (rect_x, rect_y))
+
+    # Draw the red border
+    pygame.draw.rect(window, (255, 0, 0), (rect_x, rect_y, rect_width, rect_height), 2) 
 
     # print data
     text = font.render("FPS = " + str( round( clock.get_fps() ) ), True, (0, 0, 0))
