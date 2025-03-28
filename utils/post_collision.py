@@ -50,7 +50,7 @@ def post_collision(arbiter, space, data):
         "active": True
     }
     
-    #print(f"Player {player_num} impulse of {impulse}")
+    print(f"Player {player_num} impulse of {impulse}")
     
     return True
 

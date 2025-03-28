@@ -157,7 +157,7 @@ ball_type = 3
 # Assign these types to your shapes
 end_effector_shape1.collision_type = circle1_type
 end_effector_shape2.collision_type = circle2_type
-##ball.collision_type = ball_type
+ball.collision_type = ball_type
 
 # Create a collision handler
 handler1 = space.add_collision_handler(circle1_type, ball_type)
@@ -208,7 +208,7 @@ while run:
                 ball.body.velocity = initial_impulse
             elif event.key == pygame.K_p:
                 force_reset = True
-            force += 10 if event.key == pygame.K_c else -10 if event.key == pygame.K_y else 0
+            #force += 10 if event.key == pygame.K_c else -10 if event.key == pygame.K_y else 0
             success = True if event.key == pygame.K_x else False
             fail = True if event.key == pygame.K_z else False
 
@@ -242,8 +242,19 @@ while run:
         blackhole_x = random.randint(0, window_width - 220) #220 is blackhole height and width
         blackhole_y = random.randint(0, window_height - 220)
         space.remove(ball.body, ball)
-        ball = create_ball(space, init_object_pos, mass=random.randint(100, 1000), radius=random.randint(30, 100))
+        ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
         reset_required = False
+        
+        # Assign these types to your shapes
+        end_effector_shape1.collision_type = circle1_type
+        end_effector_shape2.collision_type = circle2_type
+        ball.collision_type = ball_type
+
+        # Create a collision handler
+        handler1 = space.add_collision_handler(circle1_type, ball_type)
+        handler1.post_solve = post_collision
+        handler2 = space.add_collision_handler(circle2_type, ball_type)
+        handler2.post_solve = post_collision
     if force_reset:
         trials += 1
         start_time = time.time()
@@ -252,10 +263,19 @@ while run:
         blackhole_x = random.randint(0, window_width - 220) #220 is blackhole height and width
         blackhole_y = random.randint(0, window_height - 220)
         space.remove(ball.body, ball)
-        ball = create_ball(space, init_object_pos, mass=random.randint(100, 1000), radius=random.randint(30, 100))
+        ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
         reset_required = False
         force_reset = False
-        
+        # Assign these types to your shapes
+        end_effector_shape1.collision_type = circle1_type
+        end_effector_shape2.collision_type = circle2_type
+        ball.collision_type = ball_type
+
+        # Create a collision handler
+        handler1 = space.add_collision_handler(circle1_type, ball_type)
+        handler1.post_solve = post_collision
+        handler2 = space.add_collision_handler(circle2_type, ball_type)
+        handler2.post_solve = post_collision
 
 
     # Update circle for mouse position
@@ -272,6 +292,13 @@ while run:
         p1 = np.array(end_effector_shape1.body.position)
     if overlap2:
         p2 = np.array(end_effector_shape2.body.position)
+
+    impulse1 = player_collisions[1]["impulse"]
+    impulse2 = player_collisions[2]["impulse"]
+    f1 = np.array([impulse1[0], impulse1[1]]) / (1/FPS)
+    f2 = np.array([impulse2[0], impulse2[1]]) / (1/FPS)
+    print('f1:', f1)
+    print('f2:', f2)
     # Get positions
     arm1_link1_x, arm1_link1_y = arm1_link1.position
     arm1_link2_x, arm1_link2_y = arm1_link2.position
@@ -355,15 +382,18 @@ while run:
         else:
             timer = 3
             last_timer_update = time.time()
-    force = 40
-    if 50 <= np.abs(force):
+
+    if 50 <= np.linalg.norm(f1) or 50<= np.linalg.norm(f2):
         if high_force_start_time == 0:
             high_force_start_time = pygame.time.get_ticks()
 
-        current_time = pygame.time.get_ticks()
-        if (current_time - high_force_start_time) / 1000 >= force_threshold_time:
+        current_time_new = pygame.time.get_ticks()
+        if (current_time_new - high_force_start_time) / 1000 >= force_threshold_time:
             fail = True
-
+    else:
+        # Reset the timer if forces drop below threshold
+        high_force_start_time = 0
+        
     # increase loop counter
     i = i + 1
     

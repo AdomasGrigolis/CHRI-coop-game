@@ -71,7 +71,7 @@ while running:
 # Haptic device initiate
 device_connected = False
 G_ff = np.diag([1, 1])
-G_fb = np.diag([1, 1])
+G_fb = np.diag([1/1000, 1/1000])
 # Connect the device
 if player_number == 1:
     physics = Physics(hardware_version=2)
@@ -226,6 +226,7 @@ while run:
     # Add force meter
     force_meter_bg = pygame.Rect(10, 25, 200, 20)  # Background rectangle
     force_meter_fill = pygame.Rect(10, 25, np.linalg.norm(force_vector) * 2, 20)  # Foreground rectangle that changes with force
+    print(force_vector)
     pygame.draw.rect(window, (200, 200, 200), force_meter_bg)  # Draw background (light gray)
     if 0<np.abs(np.linalg.norm(force_vector)) <25: 
         pygame.draw.rect(window, (0, 255, 0), force_meter_fill)  # Draw fill (green)
