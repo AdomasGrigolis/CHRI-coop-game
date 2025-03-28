@@ -244,7 +244,7 @@ while run:
         space.remove(ball.body, ball)
         ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
         reset_required = False
-        
+        high_force_start_time = 0
         # Assign these types to your shapes
         end_effector_shape1.collision_type = circle1_type
         end_effector_shape2.collision_type = circle2_type
@@ -255,6 +255,7 @@ while run:
         handler1.post_solve = post_collision
         handler2 = space.add_collision_handler(circle2_type, ball_type)
         handler2.post_solve = post_collision
+
     if force_reset:
         trials += 1
         start_time = time.time()
@@ -266,6 +267,7 @@ while run:
         ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
         reset_required = False
         force_reset = False
+        high_force_start_time = 0
         # Assign these types to your shapes
         end_effector_shape1.collision_type = circle1_type
         end_effector_shape2.collision_type = circle2_type
@@ -282,9 +284,9 @@ while run:
     mouse_body1.position = tuple(p1)
 
     mouse_body2.position = tuple(p2)
-    if latest_impulse[0] != 0 or latest_impulse[1] != 0:
-        print(f"Latest collision impulse: {latest_impulse}")
-
+    #if latest_impulse[0] != 0 or latest_impulse[1] != 0:
+    #    print(f"Latest collision impulse: {latest_impulse}")
+    
     # Update circle for mouse position
     overlap1 = ensure_no_overlap(end_effector_shape1, ball)
     overlap2 = ensure_no_overlap(end_effector_shape2, ball)
@@ -293,12 +295,30 @@ while run:
     if overlap2:
         p2 = np.array(end_effector_shape2.body.position)
 
-    impulse1 = player_collisions[1]["impulse"]
-    impulse2 = player_collisions[2]["impulse"]
+
+    #impulse1 = player_collisions[1]["impulse"]
+    #impulse2 = player_collisions[2]["impulse"]
+    impulse1 = pymunk.Vec2d(0, 0)  # Zero vector for player 1
+    impulse2 = pymunk.Vec2d(0, 0)  # Zero vector for player 2
+    # For player 1
+    if player_collisions[1]["active"] and not player_collisions[1]["processed"]:
+        impulse1 = player_collisions[1]["impulse"]
+        print(f"Player 1 collision impulse: {impulse1}")
+        
+        # Mark as processed so it doesn't get printed again
+        player_collisions[1]["processed"] = True
+
+    # For player 2
+    if player_collisions[2]["active"] and not player_collisions[2]["processed"]:
+        impulse2 = player_collisions[2]["impulse"]
+        print(f"Player 2 collision impulse: {impulse2}")
+        
+        # Mark as processed so it doesn't get printed again
+        player_collisions[2]["processed"] = True
+    
     f1 = np.array([impulse1[0], impulse1[1]]) / (1/FPS)
     f2 = np.array([impulse2[0], impulse2[1]]) / (1/FPS)
-    print('f1:', f1)
-    print('f2:', f2)
+
     # Get positions
     arm1_link1_x, arm1_link1_y = arm1_link1.position
     arm1_link2_x, arm1_link2_y = arm1_link2.position
@@ -344,7 +364,6 @@ while run:
         reset_required = True
         score += 1
         timer = 3
-        high_force_start_time = 0
         force_threshold_time = 5
         append_to_csv(1, filename="succes_rate.csv")
         append_to_csv(time.time() - start_time)
@@ -353,7 +372,6 @@ while run:
         success_time = time.time()
         reset_required = True
         timer = 3
-        high_force_start_time = 0
         force_threshold_time = 5
         append_to_csv(0, filename="succes_rate.csv")
         append_to_csv(trials, filename="trials.csv")
@@ -383,17 +401,19 @@ while run:
             timer = 3
             last_timer_update = time.time()
 
-    if 50 <= np.linalg.norm(f1) or 50<= np.linalg.norm(f2):
+    # Check if force exceeds threshold
+    if np.linalg.norm(f1) >= 50 or np.linalg.norm(f2) >= 50:
+        # Start/continue counting time
         if high_force_start_time == 0:
             high_force_start_time = pygame.time.get_ticks()
-
-        current_time_new = pygame.time.get_ticks()
-        if (current_time_new - high_force_start_time) / 1000 >= force_threshold_time:
+        
+        # Check if enough time has passed
+        if (pygame.time.get_ticks() - high_force_start_time) / 1000 >= force_threshold_time:
             fail = True
     else:
-        # Reset the timer if forces drop below threshold
+        # Reset timer when force is below threshold
         high_force_start_time = 0
-        
+
     # increase loop counter
     i = i + 1
     

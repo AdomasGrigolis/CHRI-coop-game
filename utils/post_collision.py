@@ -1,4 +1,5 @@
 import time
+import pymunk
 latest_impulse = [0, 0]
 # Define a post_solve callback to capture impulse information
 # Define a structure to track collisions for each player
@@ -40,17 +41,18 @@ def post_collision(arbiter, space, data):
     # Get position and normal
     contact_position = points[0].point_a
     normal = arbiter.contact_point_set.normal
-    
+
     # Update that player's collision data
     player_collisions[player_num] = {
         "position": contact_position,
         "normal": normal,
         "impulse": impulse,
         "time": time.time(),
-        "active": True
+        "active": True,
+        "processed": False  # Add this flag
     }
     
-    print(f"Player {player_num} impulse of {impulse}")
+    #print(f"Player {player_num} impulse of {impulse}")
     
     return True
 
