@@ -1,6 +1,8 @@
 {
     "gravity": 0.0,
     "error_margin": 100,
+    "max_force": 200000,
+    "crush_force_factor": 0.5,
     "timeStep": 0.01,
     "object":{
         "mass": 1000.0,

@@ -70,8 +70,9 @@ while running:
 
 # Haptic device initiate
 device_connected = False
+max_force = cfg_simulation["max_force"]
 G_ff = np.diag([1, 1])
-G_fb = np.diag([1/1000, 1/1000])
+G_fb = np.diag([1/max_force*5, 1/max_force*5])
 # Connect the device
 if player_number == 1:
     physics = Physics(hardware_version=2)
@@ -161,7 +162,7 @@ while run:
     
     # Haptic device force update
     if device_connected: #set forces only if the device is connected
-        physics.update_force(G_fb @ force_vector)
+        physics.update_force(G_fb @ -force_vector)
     
     # Read mouse position
     # Haptic device position
@@ -225,24 +226,25 @@ while run:
     
     # Add force meter
     force_meter_bg = pygame.Rect(10, 25, 200, 20)  # Background rectangle
-    force_meter_fill = pygame.Rect(10, 25, np.linalg.norm(force_vector) * 2, 20)  # Foreground rectangle that changes with force
-    print(force_vector)
-    pygame.draw.rect(window, (200, 200, 200), force_meter_bg)  # Draw background (light gray)
-    if 0<np.abs(np.linalg.norm(force_vector)) <25: 
-        pygame.draw.rect(window, (0, 255, 0), force_meter_fill)  # Draw fill (green)
-    elif 25<np.abs(np.linalg.norm(force_vector)) <50:
-        pygame.draw.rect(window, (255, 255, 0), force_meter_fill)  # Draw fill (YELLOW)
+    #force_meter_fill = pygame.Rect(10, 25, np.linalg.norm(force_vector) * 2, 20)  # Foreground rectangle that changes with force
 
-    elif 50 <= np.abs(np.linalg.norm(force_vector)):
+    # Force normalisation
+    # Normalize the force vector to fit within the meter
+    normalized_force = min(np.linalg.norm(force_vector) / max_force, 1.0)  # Clamp to [0, 1]
+    force_meter_fill_width = int(normalized_force * 200)  # Scale to meter width (200 pixels)
+
+    force_meter_fill = pygame.Rect(10, 25, force_meter_fill_width, 20)
+    max_force_line_x = 10 + 200 
+    pygame.draw.line(window, (255, 0, 0), (max_force_line_x, 25), (max_force_line_x, 45), 2)
+
+    if normalized_force < 0.25: 
+        pygame.draw.rect(window, (0, 255, 0), force_meter_fill)  # Draw fill (green)
+    elif 0.25 <= normalized_force < 0.5:
+        pygame.draw.rect(window, (255, 255, 0), force_meter_fill)  # Draw fill (yellow)
+    else:
         warning = pygame.transform.scale(warning, (50, 50))
         window.blit(warning, (pm[0], pm[1]))
-        pygame.draw.rect(window, (255, 0, 0), force_meter_fill)
-        #if high_force_start_time == 0:
-        #    high_force_start_time = pygame.time.get_ticks()
-
-        #current_time = pygame.time.get_ticks()
-        #if (current_time - high_force_start_time) / 1000 >= force_threshold_time:
-            #fail = True
+        pygame.draw.rect(window, (255, 0, 0), force_meter_fill)  # Draw fill (red)
     
     if timer != 3:
         countdown = TEXT_FONT.render(f'{timer}', True, (255, 255, 0))  
@@ -299,11 +301,15 @@ while run:
                     END_EFFECTOR_WIDTH, END_EFFECTOR_HEIGHT))
 
 
-    #add blackhole
+    # Draw blackhole
     blackhole = pygame.transform.scale(blackhole, (rad_obj*scale_factor, rad_obj*scale_factor))
+    # Calculate the top-left corner to center the black hole at (blackhole_x, blackhole_y)
+    blackhole_width, blackhole_height = blackhole.get_size()
+    top_left_x = blackhole_x - blackhole_width // 2
+    top_left_y = blackhole_y - blackhole_height // 2
 
-    # Generate random x and y coordinates within the window
-    window.blit(blackhole, (blackhole_x, blackhole_y))
+    # Draw the black hole
+    window.blit(blackhole, (top_left_x, top_left_y))
     
     if DEBUG: print('score:', score)
 

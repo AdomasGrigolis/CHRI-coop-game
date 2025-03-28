@@ -118,8 +118,21 @@ space.gravity = (0, int(100 * cfg_simulation['gravity']))
 init_object_pos = list(np.array(screen_size) * np.array(cfg_simulation['object']['init_position']))
 object_mass = cfg_simulation['object']['mass']
 
+# Collision filters
+WALL_CATEGORY = 0b001
+BALL_CATEGORY = 0b010
+ARM_CATEGORY = 0b100 
+LINK_CATEGORY = 0b1000
+LINK_MASK = 0b0000
+WALL_MASK = BALL_CATEGORY
+BALL_MASK = WALL_CATEGORY | ARM_CATEGORY
+ARM_MASK = BALL_CATEGORY
+
 ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
-floor = create_static_wall(space, (400, 580))
+floor = create_static_wall(space, (0, screen_size[1]), (screen_size[0], screen_size[1]), category=WALL_CATEGORY, mask=WALL_MASK)
+#left_wall = create_static_wall(space, (0, 0), (0, screen_size[1]), category=WALL_CATEGORY, mask=WALL_MASK)
+#right_wall = create_static_wall(space, (screen_size[0], 0), (screen_size[0], screen_size[1]), category=WALL_CATEGORY, mask=WALL_MASK)
+ceiling = create_static_wall(space, (0, 0), (screen_size[0], 0), category=WALL_CATEGORY, mask=WALL_MASK)
 arm1_link1, arm1_link2, end_effector_shape1 = create_arm(space, (xc-350, yc), 250, 200)
 arm2_link1, arm2_link2, end_effector_shape2 = create_arm(space, (xc+350, yc), 250, 200)
 #create_arm(space, (xc, yc), 150, 100)
@@ -129,7 +142,6 @@ arm2_link1, arm2_link2, end_effector_shape2 = create_arm(space, (xc+350, yc), 25
 # circle1_shape.color = (255, 0, 0, 255)
 # circle1_shape.filter = pymunk.ShapeFilter(group=1)  # Add this line
 end_effector_shape1.color = (255, 0, 0, 255)
-end_effector_shape1.filter = pymunk.ShapeFilter(group=1)  # Add this line
 mouse_body1 = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
 mouse_joint1 = pymunk.PivotJoint(arm1_link2, mouse_body1, (200, 0), (0, 0))  # 100 是 arm2 的长度
 mouse_joint1.max_force = 100000  # the force of following
@@ -140,12 +152,20 @@ space.add(mouse_body1, mouse_joint1)
 # circle2_shape.color = (255, 255, 0, 0)
 # circle2_shape.filter = pymunk.ShapeFilter(group=2)  # Add this line
 end_effector_shape2.color = (255, 255, 0, 0)
-end_effector_shape2.filter = pymunk.ShapeFilter(group=2)  # Add this line
 mouse_body2 = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
 mouse_joint2 = pymunk.PivotJoint(arm2_link2, mouse_body2, (200, 0), (0, 0))  # 100 是 arm2 的长度
 mouse_joint2.max_force = 100000  # the force of following
 mouse_joint2.error_bias = 0.01   # the smoothness of following
 space.add(mouse_body2, mouse_joint2)
+
+ball.filter = pymunk.ShapeFilter(categories=BALL_CATEGORY, mask=BALL_MASK)
+end_effector_shape1.filter = pymunk.ShapeFilter(categories=ARM_CATEGORY, mask=ARM_MASK)
+end_effector_shape2.filter = pymunk.ShapeFilter(categories=ARM_CATEGORY, mask=ARM_MASK)
+# Assign collision filters to the links
+arm1_link1.filter = pymunk.ShapeFilter(categories=LINK_CATEGORY, mask=LINK_MASK)
+arm1_link2.filter = pymunk.ShapeFilter(categories=LINK_CATEGORY, mask=LINK_MASK)
+arm2_link1.filter = pymunk.ShapeFilter(categories=LINK_CATEGORY, mask=LINK_MASK)
+arm2_link2.filter = pymunk.ShapeFilter(categories=LINK_CATEGORY, mask=LINK_MASK)
 
 
 ##ball.filter = pymunk.ShapeFilter(group=3)  # Assuming ball is the asteroid
@@ -179,12 +199,14 @@ latency_thread_instance.start()
 
 #initialize variables
 error_margin = cfg_simulation["error_margin"]
+max_force = cfg_simulation["max_force"]
+crush_force_factor = cfg_simulation["crush_force_factor"]
 fail = False
 success = False
 reset_required = False
 force_reset = False
 high_force_start_time = 0
-force_threshold_time = 5  # 5 seconds
+force_threshold_time = 1
 timer = 3 
 # MAIN LOOP
 trials = 1
@@ -224,8 +246,6 @@ while run:
             pm1 = pm
         elif addr == players[2]:  # Player 2
             pm2 = pm
-    # Print current position
-    #print(pm1, pm2)
 
     # save state
     current_state = [t, pm1, pm2, p1, p2, dp1, dp2, pr1, pr2, f1, f2, p_prev1, p_prev2]
@@ -350,7 +370,6 @@ while run:
         float(end_effector1_position_x), float(end_effector1_position_y),
         float(end_effector2_position_x), float(end_effector2_position_y)
     )
-
     # Send the serialized state to all players
     for player in players.values():
         try:
@@ -402,7 +421,7 @@ while run:
             last_timer_update = time.time()
 
     # Check if force exceeds threshold
-    if np.linalg.norm(f1) >= 50 or np.linalg.norm(f2) >= 50:
+    if np.linalg.norm(f1) > max_force*crush_force_factor or np.linalg.norm(f2) > max_force*crush_force_factor:
         # Start/continue counting time
         if high_force_start_time == 0:
             high_force_start_time = pygame.time.get_ticks()
@@ -420,12 +439,16 @@ while run:
     # real-time plotting
     window.fill((255,255,255)) # clear window
     
-    # print data
-    text = font.render("FPS = " + str( round( clock.get_fps() ) ), True, (0, 0, 0), (255, 255, 255))
-    window.blit(text, textRect)
-    
     space.step(1/FPS)
+
+    # Draw blackhole
+    pygame.draw.circle(window, (0, 0, 0), (blackhole_x, blackhole_y), radius=ball.radius)
     space.debug_draw(draw_options)
+
+    # print data
+    text = font.render("FPS = " + str( round( clock.get_fps() ) ), True, (0, 0, 0))
+    window.blit(text, textRect)
+
     pygame.display.flip() # update display
     
     # try to keep it real time with the desired step time
