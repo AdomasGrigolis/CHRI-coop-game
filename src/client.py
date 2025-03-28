@@ -137,12 +137,12 @@ while run:
             try:
                 t_server, i_server, p1_x, p1_y, p2_x, p2_y, pobj_x, pobj_y,\
                 rad_obj, \
-                blackhole_x, blackhole_y, blackhole_positioned, \
+                blackhole_x, blackhole_y, \
                 score, success, fail, timer, \
                 force_vector1_x, force_vector1_y, force_vector2_x, force_vector2_y, \
                 arm1_link1_x, arm1_link1_y, arm1_link2_x, arm1_link2_y, \
                 arm2_link1_x, arm2_link1_y, arm2_link2_x, arm2_link2_y, \
-                end_effector1_x, end_effector1_y, end_effector2_x, end_effector2_y = struct.unpack('=fi2i2i2ii2ibiiii2f2f', data)
+                end_effector1_x, end_effector1_y, end_effector2_x, end_effector2_y = struct.unpack('=fi2i2i2ii2iiiii2f2f2f2f2f2f2f2f', data)
                 player_1_pos, player_2_pos = np.array([p1_x, p1_y]), np.array([p2_x, p2_y])
                 if player_number == 1: force_vector = np.array([force_vector1_x, force_vector1_y])
                 else: force_vector = np.array([force_vector2_x, force_vector2_y])

@@ -118,7 +118,7 @@ space.gravity = (0, int(100 * cfg_simulation['gravity']))
 init_object_pos = list(np.array(screen_size) * np.array(cfg_simulation['object']['init_position']))
 object_mass = cfg_simulation['object']['mass']
 
-ball = create_ball(space, init_object_pos, mass=100000, radius=random.randint(30, 100))
+ball = create_ball(space, init_object_pos, mass=1000, radius=random.randint(30, 100))
 floor = create_static_wall(space, (400, 580))
 arm1_link1, arm1_link2, end_effector_shape1 = create_arm(space, (xc-350, yc), 250, 200)
 arm2_link1, arm2_link2, end_effector_shape2 = create_arm(space, (xc+350, yc), 250, 200)
@@ -187,7 +187,7 @@ high_force_start_time = 0
 force_threshold_time = 5  # 5 seconds
 timer = 3 
 # MAIN LOOP
-trials = 0
+trials = 1
 i = 0
 start_time = time.time()
 last_timer_update = time.time()
@@ -255,6 +255,7 @@ while run:
         ball = create_ball(space, init_object_pos, mass=random.randint(100, 1000), radius=random.randint(30, 100))
         reset_required = False
         force_reset = False
+        
 
 
     # Update circle for mouse position
@@ -318,16 +319,19 @@ while run:
         timer = 3
         high_force_start_time = 0
         force_threshold_time = 5
-        append_to_csv(1, filename="succes_rate")
+        append_to_csv(1, filename="succes_rate.csv")
         append_to_csv(time.time() - start_time)
-    
+        append_to_csv(trials, filename="trials.csv")
     if fail and not reset_required:
         success_time = time.time()
         reset_required = True
         timer = 3
         high_force_start_time = 0
         force_threshold_time = 5
-        append_to_csv(0, filename="succes_rate")
+        append_to_csv(0, filename="succes_rate.csv")
+        append_to_csv(trials, filename="trials.csv")
+        append_to_csv(0)
+ 
 
     # timer for goal position
     position_blackhole = [blackhole_x, blackhole_y] #change to position where it is being blit
