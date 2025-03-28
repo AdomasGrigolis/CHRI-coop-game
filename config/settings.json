@@ -11,6 +11,7 @@
         "latency_port": 40002,
         "buffer_size": 1024,
         "debug": false,
+        "trial_version": true,
         "keybinds": {
             "quit_serv": "q",
             "start_sim": "s"
