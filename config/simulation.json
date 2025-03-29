@@ -1,6 +1,6 @@
 {
     "gravity": 0.0,
-    "error_margin": 100,
+    "error_margin": 50,
     "max_force": 200000,
     "crush_force_factor": 0.5,
     "timeStep": 0.01,

@@ -241,7 +241,6 @@ while run:
     p2 = pm2
     # Create random goal position
     if reset_required and time.time() - success_time >= 1 and not trial_version:
-        trials += 1
         start_time = time.time()
         success = False
         fail = False
@@ -262,7 +261,6 @@ while run:
         handler2.post_solve = post_collision
 
     if force_reset:
-        trials += 1
         start_time = time.time()
         success = False
         fail = False
@@ -372,6 +370,7 @@ while run:
         append_to_csv(1, filename="succes_rate.csv")
         append_to_csv(time.time() - start_time)
         append_to_csv(trials, filename="trials.csv")
+        trials += 1
     
     if fail and not reset_required:
         success_time = time.time()
@@ -381,6 +380,7 @@ while run:
         append_to_csv(0, filename="succes_rate.csv")
         append_to_csv(trials, filename="trials.csv")
         append_to_csv(0)
+        trials += 1
  
 
     # timer for goal position
