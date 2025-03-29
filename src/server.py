@@ -1,19 +1,18 @@
 ## !/usr/bin/env python3
 ## -*- coding: utf-8 -*-
 import numpy as np
-import math, json, os, socket, struct, time
-import threading
+import json, os, time, random
+import threading, socket, struct
 from queue import Queue
-import matplotlib.pyplot as plt
 import pygame
 import pymunk, pymunk.pygame_util
 from utils.thread_utils import server_networking_thread, server_latency_thread
-from utils.post_collision import post_collision, latest_impulse, player_collisions, ensure_no_overlap
+from utils.post_collision import post_collision, player_collisions, ensure_no_overlap
 from utils.create_arm import create_arm
-from utils.remake_objects import remake_blackhole
-import random
 from utils.pymunk_simple_objects import *
+from utils.remake_objects import remake_blackhole
 from utils.append_to_csv import append_to_csv
+
 # Settings
 config_set_path = os.path.join(os.path.dirname(__file__), "../config/settings.json")
 config_sim_path = os.path.join(os.path.dirname(__file__), "../config/simulation.json")
@@ -28,7 +27,17 @@ if DEBUG:
     print("Debug mode enabled")
     print("Configuration loaded")
 
+# Screen parameters
 screen_size = [settings['screen_size']['width'], settings['screen_size']['height']]
+
+# SIMULATION PARAMETERS
+dt = cfg_simulation['timeStep'] # simulation step time
+error_margin = cfg_simulation["error_margin"]
+max_force = cfg_simulation["max_force"]
+crush_force_factor = cfg_simulation["crush_force_factor"]
+
+# Other parameters
+trial_version = settings["server"]["trial_version"]
 
 # Socket
 players = {}
@@ -75,22 +84,17 @@ for player in players.values():
 
 '''SIMULATION'''
 
-# SIMULATION PARAMETERS
-dt = cfg_simulation['timeStep'] # simulation step time
-
 # initialise real-time plot with pygame
 pygame.init() # start pygame
 window = pygame.display.set_mode(tuple(screen_size)) # create a window (size in pixels)
 window.fill((255,255,255)) # white background
 xc, yc = window.get_rect().center # window center
 window_width, window_height = window.get_size()
-pygame.display.set_caption('Server')
-
+pygame.display.set_caption('Space Station Saver - Server Visualizer')
 font = pygame.font.Font('freesansbold.ttf', 12) # printing text font and font size
 text = font.render('test', True, (0, 0, 0), (255, 255, 255)) # printing text object
 textRect = text.get_rect()
 textRect.topleft = (10, 10) # printing text position with respect to the top-left corner of the window
-
 clock = pygame.time.Clock() # initialise clock
 FPS = int(1/dt) # refresh rate
 
@@ -112,7 +116,8 @@ i = 0 # loop counter
 current_state = []
 state = [] # state vector
 score = 0
-# Pymunk
+
+# Pymunk setup
 space = pymunk.Space()
 space.gravity = (0, int(100 * cfg_simulation['gravity']))
 
@@ -136,12 +141,8 @@ floor = create_static_wall(space, (0, screen_size[1]), (screen_size[0], screen_s
 ceiling = create_static_wall(space, (0, 0), (screen_size[0], 0), category=WALL_CATEGORY, mask=WALL_MASK)
 arm1_link1, arm1_link2, end_effector_shape1 = create_arm(space, (xc-350, yc), 250, 200)
 arm2_link1, arm2_link2, end_effector_shape2 = create_arm(space, (xc+350, yc), 250, 200)
-#create_arm(space, (xc, yc), 150, 100)
 
 # Create mouse circles
-# circle1_shape = create_ball(space, tuple(p1), radius=10, mass=10)
-# circle1_shape.color = (255, 0, 0, 255)
-# circle1_shape.filter = pymunk.ShapeFilter(group=1)  # Add this line
 end_effector_shape1.color = (255, 0, 0, 255)
 mouse_body1 = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
 mouse_joint1 = pymunk.PivotJoint(arm1_link2, mouse_body1, (200, 0), (0, 0))  # 100 是 arm2 的长度
@@ -149,9 +150,6 @@ mouse_joint1.max_force = 100000  # the force of following
 mouse_joint1.error_bias = 0.01   # the smoothness of following
 space.add(mouse_body1, mouse_joint1)
 
-# circle2_shape = create_ball(space, tuple(p2), radius=10, mass=10)
-# circle2_shape.color = (255, 255, 0, 0)
-# circle2_shape.filter = pymunk.ShapeFilter(group=2)  # Add this line
 end_effector_shape2.color = (255, 255, 0, 0)
 mouse_body2 = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
 mouse_joint2 = pymunk.PivotJoint(arm2_link2, mouse_body2, (200, 0), (0, 0))  # 100 是 arm2 的长度
@@ -167,9 +165,6 @@ arm1_link1.filter = pymunk.ShapeFilter(categories=LINK_CATEGORY, mask=LINK_MASK)
 arm1_link2.filter = pymunk.ShapeFilter(categories=LINK_CATEGORY, mask=LINK_MASK)
 arm2_link1.filter = pymunk.ShapeFilter(categories=LINK_CATEGORY, mask=LINK_MASK)
 arm2_link2.filter = pymunk.ShapeFilter(categories=LINK_CATEGORY, mask=LINK_MASK)
-
-
-##ball.filter = pymunk.ShapeFilter(group=3)  # Assuming ball is the asteroid
 
 circle1_type = 1
 circle2_type = 2
@@ -198,10 +193,7 @@ latency_thread_instance = threading.Thread(target=server_latency_thread, args=(l
 network_thread.start()
 latency_thread_instance.start()
 
-#initialize variables
-error_margin = cfg_simulation["error_margin"]
-max_force = cfg_simulation["max_force"]
-crush_force_factor = cfg_simulation["crush_force_factor"]
+# initialize variables
 fail = False
 success = False
 reset_required = False
@@ -209,16 +201,14 @@ force_reset = False
 high_force_start_time = 0
 force_threshold_time = 1
 timer = 3 
-# MAIN LOOP
 trials = 1
 i = 0
-start_time = time.time()
-last_timer_update = time.time()
 run = True
 success_time = 0
-
 blackhole_x, blackhole_y = remake_blackhole(screen_size)
-trial_version = settings["server"]["trial_version"]
+start_time = time.time()
+last_timer_update = time.time()
+# MAIN LOOP
 while run:
     for event in pygame.event.get(): # interrupt function
         if event.type == pygame.QUIT: # force quit with closing the window
@@ -231,7 +221,6 @@ while run:
                 ball.body.velocity = initial_impulse
             elif event.key == pygame.K_p:
                 force_reset = True
-            #force += 10 if event.key == pygame.K_c else -10 if event.key == pygame.K_y else 0
             success = True if event.key == pygame.K_x else False
             fail = True if event.key == pygame.K_z else False
 
@@ -248,10 +237,6 @@ while run:
         elif addr == players[2]:  # Player 2
             pm2 = pm
 
-    # save state
-    current_state = [t, pm1, pm2, p1, p2, dp1, dp2, pr1, pr2, f1, f2, p_prev1, p_prev2]
-    # log states for analysis
-    #state.append(current_state)
     p1 = pm1
     p2 = pm2
     # Create random goal position
@@ -377,6 +362,7 @@ while run:
             if DEBUG:
                 print(f"Error sending game state to {player}: {e}")
     
+    # Success/Fail conditions
     if success and not reset_required:
         success_time = time.time()
         reset_required = True
@@ -386,6 +372,7 @@ while run:
         append_to_csv(1, filename="succes_rate.csv")
         append_to_csv(time.time() - start_time)
         append_to_csv(trials, filename="trials.csv")
+    
     if fail and not reset_required:
         success_time = time.time()
         reset_required = True
@@ -409,12 +396,8 @@ while run:
             if current_time - last_timer_update >= 1 and timer > 0:
                 timer -= 1
                 last_timer_update = current_time  # Update the last timer update time
-            
-            #countdown = TEXT_FONT.render(f'{timer}', True, (255, 255, 0))
             if timer == 0:
-                #countdown = TEXT_FONT.render(f'SUCCES!', True, (255, 255, 0))
                 success = True
-            #window.blit(countdown, (position_asteroid[0], position_asteroid[1]))
         else:
             timer = 3
             last_timer_update = time.time()
@@ -431,11 +414,8 @@ while run:
     else:
         # Reset timer when force is below threshold
         high_force_start_time = 0
-
-    # increase loop counter
-    i = i + 1
     
-    # real-time plotting
+    # PyGame visuals
     window.fill((255,255,255)) # clear window
     
     space.step(1/FPS)
@@ -466,6 +446,13 @@ while run:
     
     # try to keep it real time with the desired step time
     clock.tick(FPS)
+
+    # increase loop counter
+    i = i + 1
+    # save state
+    current_state = [t, pm1, pm2, p1, p2, dp1, dp2, pr1, pr2, f1, f2, p_prev1, p_prev2]
+    # log states for analysis
+    #state.append(current_state)
     
     if run == False:
         # Shutdown command

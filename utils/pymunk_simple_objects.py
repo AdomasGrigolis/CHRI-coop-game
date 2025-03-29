@@ -15,7 +15,6 @@ def create_box(space, position, size=(50, 50), mass=1, elasticity=_default_elast
 def create_static_wall(space, start_pos, end_pos, size=(800, 20), elasticity=1.0, friction=0.0, thickness=5, category=None, mask=None):
     body = pymunk.Body(body_type=pymunk.Body.STATIC)
     shape = pymunk.Segment(body, start_pos, end_pos, thickness)
-    #shape = pymunk.Poly.create_box(body, size)
     shape.elasticity = elasticity
     shape.friction = friction
     if category and mask:

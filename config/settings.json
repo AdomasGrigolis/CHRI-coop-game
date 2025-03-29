@@ -3,8 +3,11 @@
         "width": 800,
         "height": 600
     },
-    "hardware_scale": 8000,
-    "vertical_offset": 200,
+    "haptic_device":{
+        "hardware_scale": 8000,
+        "vertical_offset": 200,
+        "force_scale": 5.0
+    },
     "server":{
         "ip": "127.0.0.1",
         "port": 40001,
