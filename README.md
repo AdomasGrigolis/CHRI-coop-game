@@ -25,7 +25,7 @@ You will need three terminals. Note that `PYTHONPATH` must be set as the workspa
     PYTHONPATH=$(pwd) python src/server.py
     PYTHONPATH=$(pwd) python src/client.py
 
-The client command needs to be run twice to start two clients.
+The server must be started first, otherwise the clients will not connect. The client command needs to be run twice to start two clients.  
 ### In VS Code
 Start 'server.py' with 'Run python file in a dedicated terminal'. Then, do the same for 'client.py'. Note that in vscode the local environment also needs to have `PYTHONPATH` set as workspace. This is platform dependent, however, on Linux this can be done with the following line in .env file (sometimes VS Code needs to be restarted for this to take effect):  
 
@@ -57,10 +57,10 @@ Data structure:
 
 data/  
 ├── questionnaires.xlsx  
-├── success_rate.csv
-├── times.csv
-├── trials.csv
-├── plot1.png
+├── success_rate.csv  
+├── times.csv  
+├── trials.csv  
+├── plot1.png  
 └── ...  
 
 ## Technical Details
@@ -94,7 +94,7 @@ Qualitative experiments are common in HRI since humans are naturally difficult t
 - The completion time will have higher downwards trend (learning curve) across trials for the haptic condition.
 
 ### Statistical tests
-Paired samples t-test was used extensively. p_value threshold is chosen to be 0.10, which is typical for exploratory studies such as ours.  
+Paired samples t-test and Wilcoxon signed-rank test were used extensively. p_value threshold is chosen to be 0.10, which is typical for exploratory studies such as ours.  
 To be completely transparent, we cannot use low p_value such as 0.05 found in most literature as the number of participants is not large enough. Please refer to the data for final count of participants.  
 The study is within-subjects to increase statistical power. Counterbalancing was used to decrease carry-over effects.  
 
