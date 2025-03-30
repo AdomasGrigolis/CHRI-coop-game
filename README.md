@@ -77,8 +77,8 @@ sockets - networking library
 The following condenses what kinds of experiments will be run with the application.  
 The main subject of the experiment is visual force feedback versus haptic force feedback. Furthermore, the effect of increased task difficulty will be evaluated between haptic vs no haptic and across trials.  
 
-### Qualitative
-Qualitative experiments are common in HRI since humans are naturally difficult to quantify. It is, hence, often more meaningful to find data trends in relative measures rather than absolute. The following **qualitative** hypotheses will be tested:  
+### Self-Reported
+Self-Reported questionnaires are common in HRI since many human factors are difficult to quantify. It is, hence, often more meaningful to find data trends from internal states rather than external. The following **self-reported data** hypotheses will be tested:  
 - It is easier* for participants to grasp objects using force enabled haptic interface. (Q2)**  
 - The environment will be experienced as more real with the haptic device. (WDQ 3)  
 - Participants will feel higher stress with haptic device (NASA-TLX).  
@@ -86,10 +86,10 @@ Qualitative experiments are common in HRI since humans are naturally difficult t
 - The haptic device will lead to higher physical demand but a greater sense of task engagement than the mouse. (WDQ 3, NASA-TLX)  
 - Effects* of the haptic interface are more substantial when objects are more difficult to grasp. (See: Future work)  
 
-\* Effects, performance are defined by both task completion speed (quantitative) and perceived task difficulty (qualitative). Perceived task difficulty is measured by questions on the form.  
+\* Effects, performance are defined by both task completion speed (empirical) and perceived task difficulty (self-reported). Perceived task difficulty is measured by questions on the form.  
 ** Q1 was removed as some participants forgot to answer the question.
 
-### Quantitative
+### Empirical
 - Task completion will be faster with the haptic device.  
 - The completion time will have higher downwards trend (learning curve) across trials for the haptic condition.
 
