@@ -4,6 +4,7 @@ import pandas as pd
 def combine_data(questionnaire_data):
     """
     Combines questionnaire data with trial, success rate, and time data.
+    Filters out rows with extreme outliers in the 'time' column and rows where 'time' is 0.
     Each row in questionnaire_data corresponds to 5 trials.
     Only 'participant_id' and 'condition' columns are used from questionnaire_data.
     """
@@ -35,9 +36,27 @@ def combine_data(questionnaire_data):
     # Concatenate the repeated questionnaire data with the trial-related data
     final_df = pd.concat([repeated_questionnaire_data, combined_trials_df], axis=1)
 
+    # Drop rows with missing values
     final_df = final_df.dropna()
-    num_participants = final_df['participant_id'].nunique()
-    print(f"Number of participants loaded successfully: {num_participants}")
+
+    final_df_unfiltered = final_df.copy()
+
+    # Drop rows where 'time' is 0
+    final_df = final_df[final_df['time'] != 0]
+
+    # Filter out extreme outliers in the 'time' column using the IQR method
+    Q1 = final_df['time'].quantile(0.25)  # First quartile (25th percentile)
+    Q3 = final_df['time'].quantile(0.75)  # Third quartile (75th percentile)
+    IQR = Q3 - Q1  # Interquartile range
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    final_df = final_df[(final_df['time'] >= lower_bound) & (final_df['time'] <= upper_bound)]
+
+    # Ensure 'participant_id' is an integer
     final_df['participant_id'] = final_df['participant_id'].astype(int)
 
-    return final_df
+    # Print the number of participants loaded
+    num_participants = final_df['participant_id'].nunique()
+    print(f"Number of participants loaded successfully: {num_participants}")
+
+    return final_df, final_df_unfiltered

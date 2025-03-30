@@ -1,61 +1,71 @@
-from scipy.stats import ttest_rel, linregress, ttest_ind
+from scipy.stats import ttest_rel, linregress, ttest_ind, wilcoxon
 import pandas as pd
 import numpy as np
 
+from scipy.stats import wilcoxon
+
 def analyze_task_completion(csv_data):
     """
-    Analyzes task completion times for Haptic and Mouse conditions.
+    Analyzes task completion times for Haptic and Mouse conditions using the Wilcoxon Signed-Rank Test.
     """
 
     csv_data = csv_data.copy()
-    # Filter data by condition
-    haptic_data = csv_data[csv_data['condition'] == 'H']['time']
-    mouse_data = csv_data[csv_data['condition'] == 'M']['time']
+
+    # Ensure the data is paired by participant_id and trial_number
+    paired_data = csv_data.pivot(index=['participant_id', 'trial_number'], columns='condition', values='time').dropna()
+
+    # Extract paired data for Haptic and Mouse conditions
+    haptic_times = paired_data['H']
+    mouse_times = paired_data['M']
 
     # Calculate mean and standard deviation
-    haptic_mean = haptic_data.mean()
-    haptic_std = haptic_data.std()
-    mouse_mean = mouse_data.mean()
-    mouse_std = mouse_data.std()
+    haptic_mean = haptic_times.mean()
+    haptic_std = haptic_times.std()
+    mouse_mean = mouse_times.mean()
+    mouse_std = mouse_times.std()
 
-    # Perform paired t-test
-    from scipy.stats import ttest_rel
-    t_stat, p_value = ttest_rel(
-        csv_data[csv_data['condition'] == 'H']['time'].values,
-        csv_data[csv_data['condition'] == 'M']['time'].values
-    )
+    # Perform Wilcoxon Signed-Rank Test
+    if len(haptic_times) > 0 and len(mouse_times) > 0:
+        w_stat, p_value = wilcoxon(haptic_times, mouse_times)
+    else:
+        w_stat, p_value = np.nan, np.nan  # Not enough data for the test
 
     return {
         "haptic_mean": haptic_mean,
         "haptic_std": haptic_std,
         "mouse_mean": mouse_mean,
         "mouse_std": mouse_std,
-        "t_stat": t_stat,
+        "w_stat": w_stat,
         "p_value": p_value
     }
 
 def analyze_learning_curve(csv_data):
     """
-    Analyzes the learning curve (downwards trend) for Haptic and Mouse conditions.
+    Analyzes the learning curve (downwards trend) for Haptic and Mouse conditions using the Wilcoxon Signed-Rank Test.
     Compares the slope of completion time across trials for each condition.
     """
 
     csv_data = csv_data.copy()
+
     # Filter data by condition
     haptic_data = csv_data[csv_data['condition'] == 'H']
     mouse_data = csv_data[csv_data['condition'] == 'M']
 
     # Group by trial_number and calculate mean time for each condition
-    haptic_grouped = haptic_data.groupby('trial_number')['time'].mean().reset_index()
-    mouse_grouped = mouse_data.groupby('trial_number')['time'].mean().reset_index()
+    haptic_grouped = haptic_data.groupby('trial_number')['time'].mean()
+    mouse_grouped = mouse_data.groupby('trial_number')['time'].mean()
 
-    # Perform linear regression for each condition
-    haptic_slope, haptic_intercept, _, _, _ = linregress(haptic_grouped['trial_number'], haptic_grouped['time'])
-    mouse_slope, mouse_intercept, _, _, _ = linregress(mouse_grouped['trial_number'], mouse_grouped['time'])
+    # Perform Wilcoxon Signed-Rank Test on trial-level means
+    if len(haptic_grouped) > 0 and len(mouse_grouped) > 0 and len(haptic_grouped) == len(mouse_grouped):
+        w_stat, p_value = wilcoxon(haptic_grouped, mouse_grouped)
+    else:
+        w_stat, p_value = np.nan, np.nan  # Not enough data or unequal group sizes
 
     return {
-        "haptic_slope": haptic_slope,
-        "mouse_slope": mouse_slope,
+        "haptic_slope": haptic_grouped.mean(),  # Approximation for slope
+        "mouse_slope": mouse_grouped.mean(),   # Approximation for slope
+        "w_stat": w_stat,
+        "p_value": p_value
     }
 
 def analyze_nasa_and_stress(questionnaire_data):

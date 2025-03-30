@@ -9,7 +9,7 @@ import json
 questionnaire_data = questionnaire_analysis.read_questionnaire_data()
 scores_df = questionnaire_analysis.calculate_scores(questionnaire_data)
 means_df = questionnaire_analysis.calculate_mean_per_condition(scores_df)
-csv_data = csv_analysis.combine_data(questionnaire_data)
+csv_data, csv_unfiltered = csv_analysis.combine_data(questionnaire_data)
 
 # Statistical Analysis
 completion_time_stats = statistical_tools.analyze_task_completion(csv_data)
