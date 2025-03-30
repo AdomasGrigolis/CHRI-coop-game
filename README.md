@@ -5,10 +5,13 @@ For CHRI Assignment 3, TU Delft MSC Robotics
 This project is licensed under the MIT license. See the [LICENSE](./LICENSE) file for details.  
 
 ## What it is
-The codebase is both a fun little online/coop game and an experiment to test user experience interacting with haptic devices that can provide force feedback to the user from virtual environment. It is also a platform to develop collaborative haptic interface enabled experiments.  
+The codebase is both a fun little online/co-op game and an experiment to test user experience interacting with haptic devices that can provide force feedback to the user from virtual environment. It is also a platform to develop collaborative haptic interface enabled experiments.  
 
 ## The game
-The objective of the game is to move the asteroid and keep over the black hole for three seconds. If, however, the pressure is applied to the asteroid for too long, it will be crushed and you will fail. This will cause space catastrophe as you will make a bunch of space dust. In this game, you have to collaboratively work with your colleagues to save space stations.
+The objective of the game is to move the asteroid and keep over the black hole to get rid of it. If, however, the pressure is applied on the asteroid for too long, it will be crushed and you will fail. This will cause space catastrophe as you will make a bunch of space dust. In this game, you have to collaboratively work with your colleagues to save space stations.
+
+## Feedback
+When playing the game with a mouse, you will see a force indicator on the left-top corner of the screen. When using a haptic device, you will feel the impact with the asteroid.  
 
 ## How to run
 Required packages can be installed with:
@@ -45,6 +48,21 @@ To have two mice and two cursors, on Windows [MouseMux](https://www.mousemux.com
 If you have both devices on the same network (for example connected by a cable) then there likely is no setup needed. One will simply need to change the ip address of the server to network ip in [setting.json](/config/settings.json). If there are some security settings, they can quite easily be changed in firewall settings. On Linux, useful tools are `socat` and `iptables`.  
 If, however, you want to run online, then you will need to allow port forwarding. Please refer to online sources on how to do this.  
 **Note that port forwarding online can be risky and we give no guarantees as per LICENSE.**  
+### Repeat the statistical analysis
+Simply run the [data_analysis.py](data_analysis/data_analysis.py) script, which will generate plots in [data](/data/) and report statistics on the terminal.  
+
+    PYTHONPATH=$(pwd) python data_analysis/data_analysis.py
+
+Data structure:  
+
+data/  
+├── questionnaires.xlsx  
+├── success_rate.csv
+├── times.csv
+├── trials.csv
+├── plot1.png
+└── ...  
+
 ## Technical Details
 ### Engines
 PyGame - game simulation and rendering  
@@ -61,27 +79,30 @@ The main subject of the experiment is visual force feedback versus haptic force 
 
 ### Qualitative
 Qualitative experiments are common in HRI since humans are naturally difficult to quantify. It is, hence, often more meaningful to find data trends in relative measures rather than absolute. The following **qualitative** hypotheses will be tested:  
-- It is easier* for participants to grasp objects using force enabled haptic interface.  
-- Effects* of the haptic interface are more substantial when objects are more difficult to grasp. (Future work)  
-- The environment will be experienced as more real with the haptic device. WDQ 3  
-- Participants will feel higher stress with haptic device (NASA TLX).  
+- It is easier* for participants to grasp objects using force enabled haptic interface. (Q2)**  
+- The environment will be experienced as more real with the haptic device. (WDQ 3)  
+- Participants will feel higher stress with haptic device (NASA-TLX).  
 - The haptic device will score higher on task autonomy and task significance compared to the mouse. (WDQ 1)  
 - The haptic device will lead to higher physical demand but a greater sense of task engagement than the mouse. (WDQ 3, NASA-TLX)  
+- Effects* of the haptic interface are more substantial when objects are more difficult to grasp. (See: Future work)  
 
-\* Effects, performance are defined by both task completion speed and perceived task difficulty. Perceived task difficulty is measured by a variant of Godspeed Questionnaire Series (GQS).  
+\* Effects, performance are defined by both task completion speed (quantitative) and perceived task difficulty (qualitative). Perceived task difficulty is measured by questions on the form.  
+** Q1 was removed as some participants forgot to answer the question.
 
 ### Quantitative
 - Task completion will be faster with the haptic device.  
 - The completion time will have higher downwards trend (learning curve) across trials for the haptic condition.
 
-### Task difficulty
-The following variations in task difficulty will be tested:  
-- Object shape: ball, square, other polygon...
-- Object properties: friction, elasticity.
-- Random perturbations.
 ### Statistical tests
-We will use the following statistical tests:  
-- Task time mouse vs haptic: paired samples t-test  
-- Difficulty levels, task time and errors: ANOVA  
-- Subjective ratings: Wilcoxon Signed-Rank Test  
-- Feedback gain and realism: Pearson correlation
+Paired samples t-test was used extensively. p_value threshold is chosen to be 0.10, which is typical for exploratory studies such as ours.  
+To be completely transparent, we cannot use low p_value such as 0.05 found in most literature as the number of participants is not large enough. Please refer to the data for final count of participants.  
+The study is within-subjects to increase statistical power. Counterbalancing was used to decrease carry-over effects.  
+
+### Future work
+Due to time constraints and small participant numbers, the following things could not be implemented or tested.  
+
+The following variations in task difficulty have been discussed:  
+- Object shape: ball, square, other polygons...  
+- Object properties: friction, elasticity.  
+- Haptic gain.  
+- Random perturbations.  

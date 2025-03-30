@@ -25,6 +25,8 @@ def calculate_scores(data):
         for participant_id, group in grouped:
             q1_value = group['Q1'].values[0]
             q2_value = group['Q2'].values[0]
+            # q2 scale is inverted
+            q2_value = 6 + 1 - q2_value
             # Calculate NASA score (mean of NASA_1 to NASA_6)
             nasa_columns = ['NASA_1', 'NASA_2', 'NASA_3', 'NASA_4', 'NASA_5', 'NASA_6']
             nasa_score = group[nasa_columns].mean(axis=1).values[0]
