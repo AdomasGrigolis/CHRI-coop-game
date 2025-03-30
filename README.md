@@ -72,7 +72,7 @@ Qualitative experiments are common in HRI since humans are naturally difficult t
 
 ### Quantitative
 - Task completion will be faster with the haptic device.  
-- The object grasping difficulty will be less steep with haptic device than with the mouse.  
+- The completion time will have higher downwards trend (learning curve) across trials for the haptic condition.
 
 ### Task difficulty
 The following variations in task difficulty will be tested:  

@@ -4,3 +4,6 @@ pygame
 pymunk
 pyserial
 scipy
+pandas
+openpyxl
+seaborn
