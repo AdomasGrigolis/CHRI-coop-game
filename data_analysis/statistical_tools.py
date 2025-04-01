@@ -1,4 +1,4 @@
-from scipy.stats import ttest_rel, linregress, ttest_ind, wilcoxon
+from scipy.stats import wilcoxon
 import pandas as pd
 import numpy as np
 
@@ -68,6 +68,38 @@ def analyze_learning_curve(csv_data):
         "p_value": p_value
     }
 
+def analyze_learning_curve_tasks_3_to_5(csv_data):
+    """
+    Analyzes the learning curve (downwards trend) for Haptic and Mouse conditions using the Wilcoxon Signed-Rank Test.
+    Focuses only on tasks 3 to 5 inclusive.
+    """
+
+    csv_data = csv_data.copy()
+
+    # Filter data to include only tasks 3 to 5
+    csv_data = csv_data[(csv_data['trial_number'] >= 3) & (csv_data['trial_number'] <= 5)]
+
+    # Filter data by condition
+    haptic_data = csv_data[csv_data['condition'] == 'H']
+    mouse_data = csv_data[csv_data['condition'] == 'M']
+
+    # Group by trial_number and calculate mean time for each condition
+    haptic_grouped = haptic_data.groupby('trial_number')['time'].mean()
+    mouse_grouped = mouse_data.groupby('trial_number')['time'].mean()
+
+    # Perform Wilcoxon Signed-Rank Test on trial-level means
+    if len(haptic_grouped) > 0 and len(mouse_grouped) > 0 and len(haptic_grouped) == len(mouse_grouped):
+        w_stat, p_value = wilcoxon(haptic_grouped, mouse_grouped)
+    else:
+        w_stat, p_value = np.nan, np.nan  # Not enough data or unequal group sizes
+
+    return {
+        "haptic_slope": haptic_grouped.mean(),  # Approximation for slope
+        "mouse_slope": mouse_grouped.mean(),   # Approximation for slope
+        "w_stat": w_stat,
+        "p_value": p_value
+    }
+
 def analyze_nasa_and_stress(questionnaire_data):
     """
     Analyzes questionnaire data for ease of grasping (Q2), overall workload (NASA-TLX),
@@ -95,9 +127,9 @@ def analyze_nasa_and_stress(questionnaire_data):
     mouse_stress = mouse_data['stress_score']
 
     # Perform independent t-tests
-    q2_t_stat, q2_p_value = ttest_ind(haptic_q2, mouse_q2, equal_var=False)
-    nasa_tlx_t_stat, nasa_tlx_p_value = ttest_ind(haptic_nasa, mouse_nasa, equal_var=False)
-    stress_t_stat, stress_p_value = ttest_ind(haptic_stress, mouse_stress, equal_var=False)
+    q2_t_stat, q2_p_value = wilcoxon(haptic_q2, mouse_q2)
+    nasa_tlx_t_stat, nasa_tlx_p_value = wilcoxon(haptic_nasa, mouse_nasa)
+    stress_t_stat, stress_p_value = wilcoxon(haptic_stress, mouse_stress)
 
     # Return results as a dictionary
     return {
@@ -159,9 +191,9 @@ def analyze_WDQ(questionnaire_data):
     mouse_engagement = mouse_data['engagement_score']
 
     # Perform independent t-tests for each metric
-    autonomy_t_stat, autonomy_p_value = ttest_ind(haptic_autonomy, mouse_autonomy, equal_var=False)
-    significance_t_stat, significance_p_value = ttest_ind(haptic_significance, mouse_significance, equal_var=False)
-    engagement_t_stat, engagement_p_value = ttest_ind(haptic_engagement, mouse_engagement, equal_var=False)
+    autonomy_t_stat, autonomy_p_value = wilcoxon(haptic_autonomy, mouse_autonomy)
+    significance_t_stat, significance_p_value = wilcoxon(haptic_significance, mouse_significance)
+    engagement_t_stat, engagement_p_value = wilcoxon(haptic_engagement, mouse_engagement)
 
     # Return results as a dictionary
     return {
@@ -223,8 +255,8 @@ def analyze_physical_demand_and_engagement(questionnaire_data):
     mouse_physical_demand = mouse_data['physical_demand_score']
 
     # Perform independent t-tests
-    engagement_t_stat, engagement_p_value = ttest_ind(haptic_engagement, mouse_engagement, equal_var=False)
-    physical_demand_t_stat, physical_demand_p_value = ttest_ind(haptic_physical_demand, mouse_physical_demand, equal_var=False)
+    engagement_t_stat, engagement_p_value = wilcoxon(haptic_engagement, mouse_engagement)
+    physical_demand_t_stat, physical_demand_p_value = wilcoxon(haptic_physical_demand, mouse_physical_demand)
 
     # Return results as a dictionary
     return {
